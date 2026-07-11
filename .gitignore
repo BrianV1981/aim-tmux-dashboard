@@ -1,0 +1,69 @@
+# A.I.M. - Git Ignore Configuration
+
+# 1. Personal Identity & Secrets (DYNAMICALLY GENERATED)
+.env
+.aim_core/CONFIG.json
+core/MEMORY.md
+core/OPERATOR.md
+core/OPERATOR_PROFILE.md
+core/MEMORY.md.bak
+
+# 2. Momentum Files (DYNAMICALLY GENERATED)
+docs/ROADMAP.md
+docs/CURRENT_STATE.md
+docs/DECISIONS.md
+
+# 3. Live Memory & Intelligence
+continuity/
+archive/
+.aim.lock
+workstreams/
+
+# 4. DataJack Cartridges
+*.engram
+
+# 5. Environment & Tooling
+venv/
+node_modules/
+*.pyc
+__pycache__/
+.DS_Store
+.agy/
+*.log
+
+# 6. OS Metadata
+*:Zone.Identifier
+.directory
+Desktop.ini
+
+# 7. Project Singularity Protection
+last_scrivener_pulse
+synapse/
+clean-install-docs/
+[AUTO_REPAIR]/engrams/
+
+# 8. Unnecessary Junk & Generated Syncs
+tmp/
+hooks/.state/
+
+# 9. Swarm Post Office Sandbox
+workspace/aim-chalkboard/
+
+# 10. Ghost Directories (Payload Folders)
+foundry/
+planning-artifacts/
+engrams/
+workspace/aim_os/
+aim.wiki/
+
+# LanceDB Storage
+memory_lance/
+memory_lance.bak/
+
+# --- A.I.M. OS Exoskeleton ---
+.aim_core/
+.gemini/
+AGENTS.md
+aim-agy_os/
+memory-wiki/
+workspace/
