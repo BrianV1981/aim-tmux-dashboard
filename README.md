@@ -23,11 +23,17 @@ In the context of the **A.I.M. (Actual Intelligent Memory)** framework, autonomo
 
 ## 🛠️ Installation & Usage
 
-To install the dashboard and its Python dependencies:
+To install the dashboard and its Python dependencies locally:
 ```bash
 git clone https://github.com/BrianV1981/aim-tmux-dashboard.git
 cd aim-tmux-dashboard
 ./scripts/setup.sh
+```
+
+**Global Server-Wide Installation**
+If you want to be able to type `aim-dash` from anywhere on your machine without being in the project directory, run the installer script (requires sudo to create the `/usr/local/bin` symlink):
+```bash
+sudo ./install.sh
 ```
 
 To launch the dashboard from this repository:
