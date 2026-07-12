@@ -67,3 +67,7 @@ AGENTS.md
 aim-agy_os/
 memory-wiki/
 workspace/
+aim-browser/
+
+.aim_temp_clone/
+test_ui.py
