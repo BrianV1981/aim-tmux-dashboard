@@ -26,7 +26,7 @@ Upgrading the dashboard from a generic manager into a specialized "Sovereign Orc
 ## Phase 4: Power Tools & Persistence
 Implementing massive workflow multipliers and bulletproofing the environment against data loss.
 
-*   **Token Grabber (Extrakto-style):** A hotkey that parses the active pane's scrollback, extracts all URLs, IP addresses, and Git hashes, and presents them in a fuzzy-search popup for instant clipboard copying.
-*   **Continuous Background Autosaves:** A background daemon that silently snapshots all pane contents, layouts, and window topologies on a 5-minute interval. If the server crashes, the user can restore their entire environment exactly as they left it.
-*   **Visual Plugin Manager:** A UI replacement for `tpm`. Visually browse, install, and update tmux plugins and themes without manually editing `~/.tmux.conf`.
+*   **Token Grabber (Extrakto-style):** A fast, keyboard-driven UI to extract URLs, IP addresses, and Git hashes directly from the active pane's scrollback buffer for instant copy/pasting.
+*   ~~**Continuous Background Autosaves:** A Python daemon to silently snapshot all active panes, running processes, and scrollback histories every 5 minutes to local storage.~~ *(On Hold - SSD Wear / Redundant to tmux-resurrect)*
+*   **Visual Plugin Manager:** A native UI wrapper for `tpm` (Tmux Plugin Manager), allowing the Operator to visually browse, toggle, and install plugins without editing config files. *(Deferred to Future v3.0)*
 *   **Command Palette:** A searchable catalog of every tmux command and keybinding with contextual auto-completion.
