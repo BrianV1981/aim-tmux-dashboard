@@ -5,5 +5,12 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 PROJECT_ROOT="$(dirname "$DIR")"
 
-# Execute the Textual dashboard using the virtual environment
-exec "$PROJECT_ROOT/venv/bin/python" "$DIR/dashboard.py"
+PY="$PROJECT_ROOT/venv/bin/python"
+if [[ ! -x "$PY" ]]; then
+    echo "Error: Python virtual environment not found or not executable." >&2
+    echo "Please run: ./scripts/setup.sh" >&2
+    exit 1
+fi
+
+# Execute the Textual dashboard using the virtual environment, passing all arguments
+exec "$PY" "$DIR/dashboard.py" "$@"

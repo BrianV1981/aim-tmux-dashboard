@@ -329,7 +329,6 @@ class TmuxDashboard(App):
         Binding("/", "focus_search", "Search"),
         Binding("l", "toggle_live", "Toggle Live Preview"),
         Binding("t", "grab_tokens", "Token Grabber"),
-        Binding("ctrl+p", "command_palette", "Settings"),
     ]
 
     def compose(self) -> ComposeResult:

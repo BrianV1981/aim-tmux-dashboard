@@ -1,6 +1,13 @@
 #!/bin/bash
-# Installer for AIM Tmux Dashboard
+set -e
 
-echo "Installing AIM Tmux Dashboard..."
-sudo ln -sf "$(pwd)/bin/aim-dash" /usr/local/bin/aim-dash
-echo "✅ Installed successfully! You can now type 'aim-dash' from anywhere to open the TUI."
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
+# Run setup to ensure virtual environment and dependencies exist
+echo "Running setup..."
+"$DIR/scripts/setup.sh"
+
+# Create symlink
+sudo ln -sf "$DIR/bin/aim-dash" /usr/local/bin/aim-dash
+
+echo "aim-dash installed successfully to /usr/local/bin/aim-dash."
