@@ -64,7 +64,7 @@ class TmuxManager:
         """Capture the entire scrollback history without colors."""
         try:
             result = subprocess.run(
-                ["tmux", "capture-pane", "-S", "-", "-p", "-t", name],
+                ["tmux", "capture-pane", "-S", "-10000", "-p", "-t", name],
                 capture_output=True, text=True, check=True
             )
             return result.stdout
@@ -128,7 +128,14 @@ class TokenGrabberModal(ModalScreen[str]):
         ips = re.findall(r'\b(?:\d{1,3}\.){3}\d{1,3}\b', raw_text)
         hashes = re.findall(r'\b[0-9a-fA-F]{7,40}\b', raw_text)
         
-        all_tokens = list(dict.fromkeys(urls + ips + hashes))
+        clean_urls = []
+        for url in urls:
+            if "token=" in url.lower() or "key=" in url.lower() or "secret=" in url.lower():
+                clean_urls.append(url.split("=")[0] + "=[REDACTED]")
+            else:
+                clean_urls.append(url)
+                
+        all_tokens = list(dict.fromkeys(clean_urls + ips + hashes))
         self.tokens = all_tokens
         
         self.populate_list(self.tokens)
@@ -352,7 +359,7 @@ class TmuxDashboard(App):
 
     def format_cmd(self, cmd: str) -> str:
         """Add a high-visibility badge to known AI agent processes."""
-        agents = ["agy", "aider", "claude", "grok", "gpt", "agent"]
+        agents = ["agy", "aider", "claude", "grok", "gpt", "agent", "opencode", "gemini", "codex", "antigravity"]
         if any(agent in cmd.lower() for agent in agents):
             return f"[bold cyan][A.I.][/bold cyan] {cmd}"
         return cmd
