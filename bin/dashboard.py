@@ -263,6 +263,13 @@ class TmuxDashboard(App):
         self.refresh_sessions()
         tree.focus()  # Bypass search input, focus tree by default
 
+    def format_cmd(self, cmd: str) -> str:
+        """Add a high-visibility badge to known AI agent processes."""
+        agents = ["agy", "aider", "claude", "grok", "gpt", "agent"]
+        if any(agent in cmd.lower() for agent in agents):
+            return f"[bold cyan][A.I.][/bold cyan] {cmd}"
+        return cmd
+
     def refresh_sessions(self) -> None:
         """Fetch hierarchy from tmux and populate the tree."""
         tree = self.query_one("#session-tree", Tree)
@@ -287,7 +294,7 @@ class TmuxDashboard(App):
             # Check for simple 1:1:1 session to dynamically flatten the tree
             windows = list(s_data["windows"].values())
             if len(windows) == 1 and len(windows[0]["panes"]) == 1:
-                pane_cmd = windows[0]["panes"][0]["cmd"]
+                pane_cmd = self.format_cmd(windows[0]["panes"][0]["cmd"])
                 session_node = tree.root.add(f"◆ {s_name} [{pane_cmd}]{s_status}", data={"type": "session", "name": s_name})
                 if s_name == focused_name:
                     node_to_focus = session_node
@@ -300,7 +307,7 @@ class TmuxDashboard(App):
                     w_status = " *" if w_data["active"] else ""
                     
                     if len(w_data["panes"]) == 1:
-                        pane_cmd = w_data["panes"][0]["cmd"]
+                        pane_cmd = self.format_cmd(w_data["panes"][0]["cmd"])
                         window_node = session_node.add(f"□ {w_data['name']} [{pane_cmd}]{w_status}", data={"type": "window", "name": w_id})
                         if w_id == focused_name:
                             node_to_focus = window_node
@@ -311,7 +318,8 @@ class TmuxDashboard(App):
                         
                         for p_data in w_data["panes"]:
                             p_status = " *" if p_data["active"] else ""
-                            pane_node = window_node.add(f"❯ {p_data['cmd']}{p_status}", data={"type": "pane", "name": p_data["id"]})
+                            pane_cmd = self.format_cmd(p_data['cmd'])
+                            pane_node = window_node.add(f"❯ {pane_cmd}{p_status}", data={"type": "pane", "name": p_data["id"]})
                             if p_data["id"] == focused_name:
                                 node_to_focus = pane_node
                         
