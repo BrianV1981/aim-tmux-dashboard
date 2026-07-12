@@ -2,10 +2,12 @@
 import subprocess
 import os
 import sys
+import re
 import time
 from textual.app import App, ComposeResult
 from textual import on
-from textual.widgets import Header, Footer, Tree, Label, Static, Input, Button
+from textual.widgets.option_list import Option
+from textual.widgets import Header, OptionList, Footer, Tree, Label, Static, Input, Button
 from textual.containers import Horizontal, Vertical
 from textual.binding import Binding
 from textual.screen import ModalScreen
@@ -58,6 +60,18 @@ class TmuxManager:
         subprocess.run(["tmux", "rename-session", "-t", old_name, new_name])
 
     @staticmethod
+    def capture_pane_scrollback(name: str) -> str:
+        """Capture the entire scrollback history without colors."""
+        try:
+            result = subprocess.run(
+                ["tmux", "capture-pane", "-S", "-", "-p", "-t", name],
+                capture_output=True, text=True, check=True
+            )
+            return result.stdout
+        except subprocess.CalledProcessError:
+            return ""
+
+    @staticmethod
     def capture_pane(name: str) -> str:
         """Capture the visible contents of the target session/window/pane."""
         try:
@@ -70,6 +84,79 @@ class TmuxManager:
         except subprocess.CalledProcessError:
             return "Unable to capture pane (target might be dead or empty)."
 
+
+
+class TokenGrabberModal(ModalScreen[str]):
+    """Modal dialog to fuzzy search and extract tokens."""
+
+    def __init__(self, target_name: str, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.target_name = target_name
+        self.tokens = []
+
+    CSS = """
+    TokenGrabberModal {
+        align: center middle;
+    }
+    #token-dialog {
+        width: 80;
+        height: 80%;
+        padding: 1 2;
+        background: $surface;
+        border: solid $accent;
+    }
+    #token-list {
+        height: 1fr;
+        margin-top: 1;
+    }
+    """
+
+    BINDINGS = [("escape", "cancel", "Cancel")]
+
+    def compose(self) -> ComposeResult:
+        from textual.containers import Vertical
+        from textual.widgets import Label, Input, OptionList
+        with Vertical(id="token-dialog"):
+            yield Label(f"Extracted Tokens for '{self.target_name}'", classes="bold")
+            yield Input(id="token-search", placeholder="Search tokens...")
+            yield OptionList(id="token-list")
+
+    def on_mount(self) -> None:
+        raw_text = TmuxManager.capture_pane_scrollback(self.target_name)
+        
+        urls = re.findall(r'https?://[^\s\'"<>]+', raw_text)
+        ips = re.findall(r'\b(?:\d{1,3}\.){3}\d{1,3}\b', raw_text)
+        hashes = re.findall(r'\b[0-9a-fA-F]{7,40}\b', raw_text)
+        
+        all_tokens = list(dict.fromkeys(urls + ips + hashes))
+        self.tokens = all_tokens
+        
+        self.populate_list(self.tokens)
+        self.query_one("#token-search").focus()
+
+    def populate_list(self, tokens: list[str]) -> None:
+        from textual.widgets.option_list import Option
+        token_list = self.query_one("#token-list")
+        token_list.clear_options()
+        for t in tokens:
+            token_list.add_option(Option(t))
+
+    @on(Input.Changed, "#token-search")
+    def on_search(self, event: Input.Changed) -> None:
+        query = event.value.lower()
+        filtered = [t for t in self.tokens if query in t.lower()]
+        self.populate_list(filtered)
+
+    @on(Input.Submitted, "#token-search")
+    def on_submit(self) -> None:
+        self.query_one("#token-list").focus()
+
+    @on(OptionList.OptionSelected, "#token-list")
+    def on_token_selected(self, event) -> None:
+        self.dismiss(str(event.option.prompt))
+
+    def action_cancel(self) -> None:
+        self.dismiss("")
 
 class ConfirmKillModal(ModalScreen[bool]):
     """Modal dialog to confirm session deletion."""
@@ -241,6 +328,7 @@ class TmuxDashboard(App):
         Binding("r", "refresh", "Refresh"),
         Binding("/", "focus_search", "Search"),
         Binding("l", "toggle_live", "Toggle Live Preview"),
+        Binding("t", "grab_tokens", "Token Grabber"),
         Binding("ctrl+p", "command_palette", "Settings"),
     ]
 
@@ -393,6 +481,21 @@ class TmuxDashboard(App):
         else:
             self.notify("You can only kill Sessions right now.", title="A.I.M.", severity="warning")
 
+
+    def action_grab_tokens(self) -> None:
+        """Extract tokens from scrollback and show fuzzy search popup."""
+        tree = self.query_one("#session-tree")
+        node = tree.cursor_node
+        if node and node.data:
+            target_name = node.data['name']
+            
+            def check_token(token: str) -> None:
+                if token:
+                    self.app.copy_to_clipboard(token)
+                    self.notify(f"Copied to clipboard: {token}", title="A.I.M.")
+            
+            self.push_screen(TokenGrabberModal(target_name), check_token)
+
     @on(Tree.NodeHighlighted, "#session-tree")
     def on_node_highlighted(self, event: Tree.NodeHighlighted) -> None:
         """Instantly update the preview when the user highlights a node."""
@@ -444,7 +547,29 @@ class TmuxDashboard(App):
                     else:
                         subprocess.run(["tmux", "attach", "-t", target_name])
 
+class GrabApp(App):
+    """A minimal app that launches the TokenGrabberModal directly."""
+    
+    def __init__(self, target_pane: str, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.target_pane = target_pane
+        
+    def on_mount(self) -> None:
+        def check_token(token: str) -> None:
+            if token:
+                self.copy_to_clipboard(token)
+                subprocess.run(["tmux", "display-message", f"Copied to clipboard: {token}"])
+            self.exit()
+            
+        self.push_screen(TokenGrabberModal(self.target_pane), check_token)
+
 if __name__ == "__main__":
-    popup_mode = "--popup" in sys.argv
-    app = TmuxDashboard(popup_mode=popup_mode)
-    app.run()
+    if "--grab" in sys.argv:
+        # Fallback: get current pane if not provided
+        target = subprocess.run(["tmux", "display-message", "-p", "#{pane_id}"], capture_output=True, text=True).stdout.strip()
+        app = GrabApp(target)
+        app.run()
+    else:
+        popup_mode = "--popup" in sys.argv
+        app = TmuxDashboard(popup_mode=popup_mode)
+        app.run()
