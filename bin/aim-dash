@@ -1,8 +1,9 @@
 #!/bin/bash
 # A.I.M. Tmux Dashboard Entrypoint
 
-# Get the directory of this script
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+# Get the true directory of this script (resolving symlinks)
+SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+DIR="$(dirname "$SCRIPT_PATH")"
 PROJECT_ROOT="$(dirname "$DIR")"
 
 PY="$PROJECT_ROOT/venv/bin/python"
