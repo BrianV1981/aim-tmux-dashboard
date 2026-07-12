@@ -23,17 +23,39 @@ In the context of the **A.I.M. (Actual Intelligent Memory)** framework, autonomo
 
 ## 🛠️ Installation & Usage
 
-*(Note: The dashboard is currently evolving from a basic script into a modern, fully interactive TUI.)*
+To install the dashboard and its Python dependencies:
+```bash
+git clone https://github.com/BrianV1981/aim-tmux-dashboard.git
+cd aim-tmux-dashboard
+./scripts/setup.sh
+```
 
 To launch the dashboard from this repository:
 ```bash
 ./bin/aim-dash
 ```
 
-**Basic Controls:**
+**Popup Mode**
+You can run the dashboard as a floating popup overlay within tmux using the `--popup` flag. We recommend binding this to a hotkey in your `~/.tmux.conf`:
+```tmux
+bind-key -n F10 display-popup -E -w 85% -h 85% -d "#{pane_current_path}" "cd /path/to/aim-tmux-dashboard && ./bin/aim-dash --popup"
+```
+
+**Token Grabber**
+You can instantly grab URLs, IPs, and Git Hashes from the current pane without opening the dashboard by binding the `--grab` flag:
+```tmux
+bind-key g display-popup -E -w 85% -h 85% -d "#{pane_current_path}" "cd /path/to/aim-tmux-dashboard && venv/bin/python bin/dashboard.py --grab"
+```
+
+**Dashboard Controls:**
+- `Arrow Keys`: Navigate the session tree.
+- `Enter` / `a`: Attach to the selected session, window, or pane.
+- `l`: Toggle Live Preview (auto-updates the preview pane every 1 second).
 - `n`: Create a new Tmux workspace.
-- `[0-9]`: Enter the number of an active session to attach to it. (Press `Ctrl+B` then `D` to detach and return).
-- `k`: Kill / Delete a specific session.
+- `e`: Rename the selected session.
+- `k`: Kill the selected session.
+- `/`: Filter/search sessions.
+- `t`: Token Grabber (extracts links/hashes from the highlighted pane).
 - `q`: Quit the dashboard.
 
 ---
