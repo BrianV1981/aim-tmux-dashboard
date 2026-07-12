@@ -204,6 +204,10 @@ class RenameSessionModal(ModalScreen[str]):
 class TmuxDashboard(App):
     """A Textual TUI to manage tmux sessions."""
 
+    def __init__(self, popup_mode=False, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.popup_mode = popup_mode
+
     CSS = """
     Screen {
         background: $surface;
@@ -217,7 +221,7 @@ class TmuxDashboard(App):
         width: 65%;
         height: 100%;
         padding: 1 2;
-        overflow: auto;
+        overflow-y: scroll;
     }
     #preview-area {
         width: 100%;
@@ -279,21 +283,37 @@ class TmuxDashboard(App):
                 continue
                 
             s_status = " (Attached)" if s_data["attached"] else ""
-            session_node = tree.root.add(f"🖥️  {s_name}{s_status}", data={"type": "session", "name": s_name}, expand=True)
-            if s_name == focused_name:
-                node_to_focus = session_node
             
-            for w_id, w_data in s_data["windows"].items():
-                w_status = " *" if w_data["active"] else ""
-                window_node = session_node.add(f"🪟 {w_data['name']}{w_status}", data={"type": "window", "name": w_id}, expand=False)
-                if w_id == focused_name:
-                    node_to_focus = window_node
+            # Check for simple 1:1:1 session to dynamically flatten the tree
+            windows = list(s_data["windows"].values())
+            if len(windows) == 1 and len(windows[0]["panes"]) == 1:
+                pane_cmd = windows[0]["panes"][0]["cmd"]
+                session_node = tree.root.add(f"◆ {s_name} [{pane_cmd}]{s_status}", data={"type": "session", "name": s_name})
+                if s_name == focused_name:
+                    node_to_focus = session_node
+            else:
+                session_node = tree.root.add(f"◆ {s_name}{s_status}", data={"type": "session", "name": s_name}, expand=True)
+                if s_name == focused_name:
+                    node_to_focus = session_node
                 
-                for p_data in w_data["panes"]:
-                    p_status = " *" if p_data["active"] else ""
-                    pane_node = window_node.add(f"🐚 {p_data['cmd']}{p_status}", data={"type": "pane", "name": p_data["id"]})
-                    if p_data["id"] == focused_name:
-                        node_to_focus = pane_node
+                for w_id, w_data in s_data["windows"].items():
+                    w_status = " *" if w_data["active"] else ""
+                    
+                    if len(w_data["panes"]) == 1:
+                        pane_cmd = w_data["panes"][0]["cmd"]
+                        window_node = session_node.add(f"□ {w_data['name']} [{pane_cmd}]{w_status}", data={"type": "window", "name": w_id})
+                        if w_id == focused_name:
+                            node_to_focus = window_node
+                    else:
+                        window_node = session_node.add(f"□ {w_data['name']}{w_status}", data={"type": "window", "name": w_id}, expand=False)
+                        if w_id == focused_name:
+                            node_to_focus = window_node
+                        
+                        for p_data in w_data["panes"]:
+                            p_status = " *" if p_data["active"] else ""
+                            pane_node = window_node.add(f"❯ {p_data['cmd']}{p_status}", data={"type": "pane", "name": p_data["id"]})
+                            if p_data["id"] == focused_name:
+                                node_to_focus = pane_node
                         
         if node_to_focus:
             tree.move_cursor(node_to_focus)
@@ -390,11 +410,15 @@ class TmuxDashboard(App):
         node = event.node
         if node and node.data:
             target_name = node.data['name']
-            with self.suspend():
-                if "TMUX" in os.environ:
-                    subprocess.run(["tmux", "switch-client", "-t", target_name])
-                else:
-                    subprocess.run(["tmux", "attach", "-t", target_name])
+            if self.popup_mode:
+                subprocess.run(["tmux", "switch-client", "-t", target_name])
+                self.exit()
+            else:
+                with self.suspend():
+                    if "TMUX" in os.environ:
+                        subprocess.run(["tmux", "switch-client", "-t", target_name])
+                    else:
+                        subprocess.run(["tmux", "attach", "-t", target_name])
 
     def action_attach_session(self) -> None:
         """Suspend the TUI and attach to the selected tmux target."""
@@ -402,12 +426,17 @@ class TmuxDashboard(App):
         node = tree.cursor_node
         if node and node.data:
             target_name = node.data['name']
-            with self.suspend():
-                if "TMUX" in os.environ:
-                    subprocess.run(["tmux", "switch-client", "-t", target_name])
-                else:
-                    subprocess.run(["tmux", "attach", "-t", target_name])
+            if self.popup_mode:
+                subprocess.run(["tmux", "switch-client", "-t", target_name])
+                self.exit()
+            else:
+                with self.suspend():
+                    if "TMUX" in os.environ:
+                        subprocess.run(["tmux", "switch-client", "-t", target_name])
+                    else:
+                        subprocess.run(["tmux", "attach", "-t", target_name])
 
 if __name__ == "__main__":
-    app = TmuxDashboard()
+    popup_mode = "--popup" in sys.argv
+    app = TmuxDashboard(popup_mode=popup_mode)
     app.run()
