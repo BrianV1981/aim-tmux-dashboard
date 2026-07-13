@@ -1,74 +1,35 @@
-# 🚀 A.I.M. Tmux Dashboard
+<!-- AIM_ECOSYSTEM_START -->
+### 🧬 The A.I.M. Ecosystem
 
-The **A.I.M. Tmux Dashboard** (`aim-dash`) is a streamlined, interactive Terminal User Interface (TUI) designed to control, orchestrate, and manage multiple isolated tmux sessions. 
+Modular A.I.M. (Actual Intelligent Memory) repositories. **Flagship engine: [aim-agy](https://github.com/BrianV1981/aim-agy).**
 
-Whether you are managing background services or coordinating an army of autonomous AI agents, this dashboard provides a central cockpit to monitor and interact with your workflows.
+**Active vessels (CLI hosts):**
+- **[aim-agy](https://github.com/BrianV1981/aim-agy)** — Core engine (Antigravity / post–Gemini-CLI line). *Flagship.*
+- **[aim-grok](https://github.com/BrianV1981/aim-grok)** — Grok CLI vessel (hybrid memory, GitOps, wiki).
+- **[aim-opencode](https://github.com/BrianV1981/aim-opencode)** — OpenCode CLI vessel.
+- **[aim-codex](https://github.com/BrianV1981/aim-codex)** — Codex-native vessel (**on the horizon** — not deprecated).
 
-## 🌟 Why It's Useful
+**Tools & workspaces:**
+- **[aim-connect](https://github.com/BrianV1981/aim-connect)** — Self-hosted remote workspace web UI.
+- **[aim-tmux-dashboard](https://github.com/BrianV1981/aim-tmux-dashboard)** — Terminal multi-session monitor.
+- **[aim-browser](https://github.com/BrianV1981/aim-browser)** — Headed Chromium CDP engine + browser **skill suite**.
+- **[aim-google](https://github.com/BrianV1981/aim-google)** — Google Workspace CLI (Gmail, Drive, Calendar, …).
+- **[aim-flight-recorder](https://github.com/BrianV1981/aim-flight-recorder)** — Forensic Markdown session extractor.
+- **[aim-boardroom](https://github.com/BrianV1981/aim-boardroom)** — Multi-agent orchestration room (OS multiplexing + artifacts).
+- **[aim-skills](https://github.com/BrianV1981/aim-skills)** — **Skills index / multi-CLI install registry** (agy, grok, opencode, codex).
 
-### Standalone Use
-Even without the full A.I.M. exoskeleton, `aim-dash` serves as a kickass, lightweight manager for tmux. Instead of memorizing arcane tmux commands or navigating raw terminal output, the dashboard lets you:
-- Quickly view all active detached background sessions.
-- Spawn new, cleanly-named, isolated workspaces with a single keystroke.
-- Attach to running sessions and detach seamlessly.
-- Instantly kill rogue or completed sessions.
+**DNA, comms & lore:**
+- **[aim-coagents](https://github.com/BrianV1981/aim-coagents)** — DNA bank for sovereign co-agent blueprints.
+- **[aim-knowledge](https://github.com/BrianV1981/aim-knowledge)** — Public Obsidian vault / deep-lore archive.
+- **[aim-chalkboard](https://github.com/BrianV1981/aim-chalkboard)** — Optional cross-host async git mailbox (PoC; default same-host comms = **aim-communicate** skill).
 
-### In the Larger A.I.M. Ecosystem
-In the context of the **A.I.M. (Actual Intelligent Memory)** framework, autonomous agents run detached in the background to prevent terminal paralysis. `aim-dash` becomes your central **Admin Panel**:
-- **Visibility:** Monitor exactly what your sovereign Co-Agents are doing without interrupting them.
-- **Orchestration:** Spin up separate sandboxes for agents working on different tickets simultaneously.
-- **Intervention:** Attach to a session to observe an agent's terminal stream, provide human guidance via TUI chat, or kill a hallucinating agent instantly.
+**Deprecated / not maintained:**
+- **[aim](https://github.com/BrianV1981/aim)** — Original **Gemini CLI** framework. Deprecated after loss of practical subscription access; **Great Migration → aim-agy**.
+- **[aim-swarm](https://github.com/BrianV1981/aim-swarm)** — Legacy Python swarm factory → use **aim-coagents** + aim-agy spawn.
+- **aim-claude / Anthropic-line vessels** — **Done.** Operator does not develop against Anthropic. Use aim-agy / aim-grok / aim-opencode (or aim-codex when ready).
 
----
-
-## 🛠️ Installation & Usage
-
-To install the dashboard and its Python dependencies locally:
-```bash
-git clone https://github.com/BrianV1981/aim-tmux-dashboard.git
-cd aim-tmux-dashboard
-./scripts/setup.sh
-```
-
-**Global Server-Wide Installation**
-If you want to be able to type `aim-dash` from anywhere on your machine without being in the project directory, run the installer script (requires sudo to create the `/usr/local/bin` symlink):
-```bash
-sudo ./install.sh
-```
-
-To launch the dashboard from this repository:
-```bash
-./bin/aim-dash
-```
-
-**Popup Mode**
-You can run the dashboard as a floating popup overlay within tmux using the `--popup` flag. We recommend binding this to a hotkey in your `~/.tmux.conf`:
-```tmux
-bind-key -n F10 display-popup -E -w 85% -h 85% -d "#{pane_current_path}" "cd /path/to/aim-tmux-dashboard && ./bin/aim-dash --popup"
-```
-
-**Token Grabber**
-You can instantly grab URLs, IPs, and Git Hashes from the current pane without opening the dashboard by binding the `--grab` flag:
-```tmux
-bind-key g display-popup -E -w 85% -h 85% -d "#{pane_current_path}" "cd /path/to/aim-tmux-dashboard && venv/bin/python bin/dashboard.py --grab"
-```
-
-**Dashboard Controls:**
-- `Arrow Keys`: Navigate the session tree.
-- `Enter` / `a`: Attach to the selected session, window, or pane.
-- `l`: Toggle Live Preview (auto-updates the preview pane every 1 second).
-- `n`: Create a new Tmux workspace.
-- `e`: Rename the selected session.
-- `k`: Kill the selected session.
-- `/`: Filter/search sessions.
-- `t`: Token Grabber (extracts links/hashes from the highlighted pane).
-- `q`: Quit the dashboard.
-
----
-
-## 🧬 Built on the A.I.M. Exoskeleton
-This project utilizes the **A.I.M.** framework, an open-source engineering exoskeleton designed to solve context amnesia and drift in long-running autonomous AI coding sessions. 
-Learn more about the core engine at [aim-agy](https://github.com/BrianV1981/aim-agy).
+Full map: see **aim-skills** `docs/AIM_ECOSYSTEM_MAP.md` or Operator artifact `AIM_ECOSYSTEM_MAP.md`.
+<!-- AIM_ECOSYSTEM_END -->
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ☕ **Support the project:** [Buy Me a Coffee](https://buymeacoffee.com/brianv1981)
