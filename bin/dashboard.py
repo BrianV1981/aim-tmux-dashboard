@@ -324,7 +324,7 @@ class TmuxDashboard(App):
         border: round $accent;
     }
     #main-panel {
-        width: 65%;
+        width: 1fr;
         height: 100%;
         border: round $secondary-muted;
         background: $surface;
@@ -339,7 +339,7 @@ class TmuxDashboard(App):
         height: auto;
     }
     Tree {
-        height: 100%;
+        height: 1fr;
         padding-top: 1;
     }
     Input {
