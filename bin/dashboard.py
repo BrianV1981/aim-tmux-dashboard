@@ -305,6 +305,39 @@ class RenameSessionModal(ModalScreen[str]):
 
 
 
+
+class TmuxKeysCommandProvider(Provider):
+    async def discover(self) -> Hit:
+        matcher = self.matcher("")
+        async for hit in self.search(""):
+            yield hit
+
+    async def search(self, query: str) -> Hit:
+        matcher = self.matcher(query)
+        keys = [
+            ("Split pane vertically", "prefix + %"),
+            ("Split pane horizontally", 'prefix + "'),
+            ("Navigate panes", "prefix + arrows"),
+            ("Close current pane", "prefix + x"),
+            ("New window", "prefix + c"),
+            ("Next window", "prefix + n"),
+            ("Previous window", "prefix + p"),
+            ("Rename window", "prefix + ,"),
+            ("Detach session", "prefix + d"),
+            ("List sessions", "prefix + s"),
+            ("Kill window", "prefix + &"),
+            ("Zoom pane", "prefix + z"),
+        ]
+        for desc, shortcut in keys:
+            display_text = f"{desc} [{shortcut}]"
+            action = lambda d=desc, s=shortcut: self.app.notify(f"Tmux Shortcut: {s}", title=d)
+            if not query:
+                yield Hit(1.0, display_text, action, help=f"Tmux: {desc}")
+                continue
+            score = matcher.match(display_text)
+            if score > 0:
+                yield Hit(score, matcher.highlight(display_text), action, help=f"Tmux: {desc}")
+
 class LayoutCommandProvider(Provider):
     async def discover(self) -> Hit:
         matcher = self.matcher("")
@@ -336,10 +369,15 @@ class TmuxDashboard(App):
     def get_system_commands(self, screen):
         yield from super().get_system_commands(screen)
         yield ("UI Layouts...", "Switch structural window layouts", self.action_search_layouts, True)
+        yield ("Keys (TMUX)...", "Cheat sheet for tmux commands", self.action_search_tmux_keys, True)
 
     def action_search_layouts(self) -> None:
         from textual.command import CommandPalette
         self.push_screen(CommandPalette(providers=[LayoutCommandProvider], placeholder="Search Layouts..."))
+
+    def action_search_tmux_keys(self) -> None:
+        from textual.command import CommandPalette
+        self.push_screen(CommandPalette(providers=[TmuxKeysCommandProvider], placeholder="Search Tmux Keys..."))
 
     def __init__(self, popup_mode=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
