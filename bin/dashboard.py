@@ -97,13 +97,15 @@ class TokenGrabberModal(ModalScreen[str]):
     CSS = """
     TokenGrabberModal {
         align: center middle;
+        background: $background 50%;
     }
     #token-dialog {
         width: 80;
         height: 80%;
         padding: 1 2;
         background: $surface;
-        border: solid $accent;
+        border: round $accent;
+        box-sizing: border-box;
     }
     #token-list {
         height: 1fr;
@@ -175,13 +177,14 @@ class ConfirmKillModal(ModalScreen[bool]):
     CSS = """
     ConfirmKillModal {
         align: center middle;
+        background: $background 50%;
     }
     #confirm-dialog {
         width: 40;
         height: auto;
         padding: 1 2;
         background: $surface;
-        border: thick $error 80%;
+        border: round $error;
     }
     .buttons {
         width: 100%;
@@ -219,13 +222,14 @@ class NewSessionModal(ModalScreen[str]):
     CSS = """
     NewSessionModal {
         align: center middle;
+        background: $background 50%;
     }
     #dialog {
         width: 40;
         height: auto;
         padding: 1 2;
         background: $surface;
-        border: thick $background 80%;
+        border: round $primary;
     }
     """
 
@@ -261,13 +265,14 @@ class RenameSessionModal(ModalScreen[str]):
     CSS = """
     RenameSessionModal {
         align: center middle;
+        background: $background 50%;
     }
     #rename-dialog {
         width: 40;
         height: auto;
         padding: 1 2;
         background: $surface;
-        border: thick $background 80%;
+        border: round $primary;
     }
     """
 
@@ -304,18 +309,30 @@ class TmuxDashboard(App):
 
     CSS = """
     Screen {
-        background: $surface;
+        background: $background;
+        padding: 1 2;
     }
     #left-panel {
         width: 35%;
-        border-right: solid $primary;
+        border: round $primary-muted;
         height: 100%;
+        background: $surface;
+        padding: 0 1;
+        margin-right: 1;
+    }
+    #left-panel:focus-within {
+        border: round $accent;
     }
     #main-panel {
         width: 65%;
         height: 100%;
+        border: round $secondary-muted;
+        background: $surface;
         padding: 1 2;
         overflow-y: scroll;
+    }
+    #main-panel:focus-within {
+        border: round $accent;
     }
     #preview-area {
         width: 100%;
@@ -323,6 +340,14 @@ class TmuxDashboard(App):
     }
     Tree {
         height: 100%;
+        padding-top: 1;
+    }
+    Input {
+        border: tall $primary-muted;
+        margin-bottom: 1;
+    }
+    Input:focus {
+        border: tall $accent;
     }
     """
 
