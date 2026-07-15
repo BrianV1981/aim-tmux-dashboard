@@ -11,6 +11,7 @@ from textual.widgets import Header, OptionList, Footer, Tree, Label, Static, Inp
 from textual.containers import Horizontal, Vertical, Container
 from textual.binding import Binding
 from textual.screen import ModalScreen
+from textual.command import Provider, Hit
 from rich.text import Text
 
 class TmuxManager:
@@ -301,47 +302,28 @@ class RenameSessionModal(ModalScreen[str]):
 
 
 
-class LayoutSwitcherModal(ModalScreen[int]):
-    """Modal dialog to switch structural layouts."""
 
-    CSS = """
-    LayoutSwitcherModal {
-        align: center middle;
-        background: $background 50%;
-    }
-    #layout-dialog {
-        width: 60;
-        height: auto;
-        padding: 1 2;
-        background: $surface;
-        border: round $primary;
-    }
-    """
-
-    BINDINGS = [("escape", "cancel", "Cancel")]
-
-    def compose(self) -> ComposeResult:
-        with Vertical(id="layout-dialog"):
-            yield Label("Select Structural Layout:", classes="bold")
-            yield OptionList(
-                Option("Side-by-Side (List Left)"),
-                Option("Side-by-Side (List Right)"),
-                Option("Stacked (List Top)"),
-                Option("Stacked (List Bottom)"),
-                id="layout-list"
-            )
-
-    def on_mount(self) -> None:
-        self.query_one("#layout-list").focus()
-
-    @on(OptionList.OptionSelected, "#layout-list")
-    def on_layout_selected(self, event) -> None:
-        self.dismiss(event.option_index)
-
-    def action_cancel(self) -> None:
-        self.dismiss(-1)
+class DashboardCommandProvider(Provider):
+    async def search(self, query: str):
+        matcher = self.matcher(query)
+        layouts = [
+            ("Layout: Side-by-Side (List Left)", "horizontal", False),
+            ("Layout: Side-by-Side (List Right)", "horizontal", True),
+            ("Layout: Stacked (List Top)", "vertical", False),
+            ("Layout: Stacked (List Bottom)", "vertical", True),
+        ]
+        for name, layout_type, swap in layouts:
+            score = matcher.match(name)
+            if score > 0:
+                yield Hit(
+                    score,
+                    matcher.highlight(name),
+                    lambda l=layout_type, s=swap: self.app.action_set_layout(l, s),
+                    help=f"Switch to {name}"
+                )
 
 class TmuxDashboard(App):
+    COMMANDS = App.COMMANDS | {DashboardCommandProvider}
     """A Textual TUI to manage tmux sessions."""
 
     def __init__(self, popup_mode=False, *args, **kwargs):
@@ -406,7 +388,6 @@ class TmuxDashboard(App):
         Binding("/", "focus_search", "Search"),
         Binding("l", "toggle_live", "Toggle Live Preview"),
         Binding("t", "grab_tokens", "Token Grabber"),
-        Binding("ctrl+p", "layout_palette", "Layout Switcher"),
         Binding("[", "shrink_pane", "Shrink Pane"),
         Binding("]", "expand_pane", "Expand Pane"),
     ]
@@ -525,27 +506,17 @@ class TmuxDashboard(App):
         self.pane_split_percent = min(90, self.pane_split_percent + 5)
         self.update_pane_sizes()
 
-    def action_layout_palette(self) -> None:
-        def check_layout(choice: int) -> None:
-            if choice == -1: return
-            container = self.query_one("#app-container")
-            left = self.query_one("#left-panel")
-            main = self.query_one("#main-panel")
-            
-            if choice == 0:
-                container.styles.layout = "horizontal"
-                container.move_child(left, before=main)
-            elif choice == 1:
-                container.styles.layout = "horizontal"
-                container.move_child(left, after=main)
-            elif choice == 2:
-                container.styles.layout = "vertical"
-                container.move_child(left, before=main)
-            elif choice == 3:
-                container.styles.layout = "vertical"
-                container.move_child(left, after=main)
-            self.update_pane_sizes()
-        self.push_screen(LayoutSwitcherModal(), check_layout)
+    def action_set_layout(self, layout_type: str, swap: bool) -> None:
+        container = self.query_one("#app-container")
+        left = self.query_one("#left-panel")
+        main = self.query_one("#main-panel")
+        
+        container.styles.layout = layout_type
+        if swap:
+            container.move_child(left, after=main)
+        else:
+            container.move_child(left, before=main)
+        self.update_pane_sizes()
 
     def action_focus_search(self) -> None:
         """Focus the search input when / is pressed."""
