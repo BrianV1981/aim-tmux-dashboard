@@ -303,52 +303,7 @@ class RenameSessionModal(ModalScreen[str]):
 
 
 
-class TmuxCommandProvider(Provider):
-    async def discover(self) -> Hit:
-        matcher = self.matcher("")
-        async for hit in self.search(""):
-            yield hit
 
-    async def search(self, query: str) -> Hit:
-        matcher = self.matcher(query)
-        app = self.app
-        commands = [
-            ("New Session", "Create a new tmux session", app.action_new_session),
-            ("Rename Session", "Rename the selected session", app.action_rename_session),
-            ("Kill Session", "Kill the selected session", app.action_kill_session),
-            ("Attach Session", "Attach to the selected session in terminal", app.action_attach_session),
-            ("Refresh Tree", "Reload the session list from tmux", app.action_refresh),
-        ]
-        for name, description, action in commands:
-            if not query:
-                yield Hit(1.0, name, action, help=description)
-                continue
-            score = matcher.match(name)
-            if score > 0:
-                yield Hit(score, matcher.highlight(name), action, help=description)
-
-class SettingCommandProvider(Provider):
-    async def discover(self) -> Hit:
-        matcher = self.matcher("")
-        async for hit in self.search(""):
-            yield hit
-
-    async def search(self, query: str) -> Hit:
-        matcher = self.matcher(query)
-        app = self.app
-        commands = [
-            ("Toggle Live View", "Enable or disable live terminal previews", app.action_toggle_live),
-            ("Grab Tokens", "Attempt to grab tokens via aim-communicate", app.action_grab_tokens),
-            ("Shrink Pane", "Decrease the left pane width", app.action_shrink_pane),
-            ("Expand Pane", "Increase the left pane width", app.action_expand_pane),
-        ]
-        for name, description, action in commands:
-            if not query:
-                yield Hit(1.0, name, action, help=description)
-                continue
-            score = matcher.match(name)
-            if score > 0:
-                yield Hit(score, matcher.highlight(name), action, help=description)
 
 class LayoutCommandProvider(Provider):
     async def discover(self) -> Hit:
@@ -380,17 +335,7 @@ class TmuxDashboard(App):
 
     def get_system_commands(self, screen):
         yield from super().get_system_commands(screen)
-        yield ("Tmux Actions...", "Manage tmux sessions", self.action_search_tmux, True)
-        yield ("Dashboard Settings...", "Configure application preferences", self.action_search_settings, True)
         yield ("UI Layouts...", "Switch structural window layouts", self.action_search_layouts, True)
-
-    def action_search_tmux(self) -> None:
-        from textual.command import CommandPalette
-        self.push_screen(CommandPalette(providers=[TmuxCommandProvider], placeholder="Search Tmux Actions..."))
-
-    def action_search_settings(self) -> None:
-        from textual.command import CommandPalette
-        self.push_screen(CommandPalette(providers=[SettingCommandProvider], placeholder="Search Settings..."))
 
     def action_search_layouts(self) -> None:
         from textual.command import CommandPalette
