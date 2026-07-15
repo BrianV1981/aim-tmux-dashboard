@@ -306,37 +306,84 @@ class RenameSessionModal(ModalScreen[str]):
 
 
 
-class TmuxKeysCommandProvider(Provider):
-    async def discover(self) -> Hit:
-        matcher = self.matcher("")
-        async for hit in self.search(""):
-            yield hit
 
-    async def search(self, query: str) -> Hit:
-        matcher = self.matcher(query)
-        keys = [
-            ("Split pane vertically", "prefix + %"),
-            ("Split pane horizontally", 'prefix + "'),
-            ("Navigate panes", "prefix + arrows"),
-            ("Close current pane", "prefix + x"),
-            ("New window", "prefix + c"),
-            ("Next window", "prefix + n"),
-            ("Previous window", "prefix + p"),
-            ("Rename window", "prefix + ,"),
-            ("Detach session", "prefix + d"),
-            ("List sessions", "prefix + s"),
-            ("Kill window", "prefix + &"),
-            ("Zoom pane", "prefix + z"),
-        ]
-        for desc, shortcut in keys:
-            display_text = f"{desc} [{shortcut}]"
-            action = lambda d=desc, s=shortcut: self.app.notify(f"Tmux Shortcut: {s}", title=d)
-            if not query:
-                yield Hit(1.0, display_text, action, help=f"Tmux: {desc}")
-                continue
-            score = matcher.match(display_text)
-            if score > 0:
-                yield Hit(score, matcher.highlight(display_text), action, help=f"Tmux: {desc}")
+class TmuxKeysScreen(ModalScreen):
+    """Side panel displaying Tmux keys cheat sheet."""
+    
+    CSS = """
+    TmuxKeysScreen {
+        align: right top;
+        background: transparent;
+    }
+    #tmux-keys-panel {
+        width: 45;
+        height: 100%;
+        background: $surface;
+        border-left: vkey $primary;
+        padding: 1 2;
+        overflow-y: auto;
+    }
+    .tk-category {
+        text-style: bold;
+        color: $accent;
+        margin-top: 1;
+        margin-bottom: 1;
+    }
+    .tk-row {
+        layout: horizontal;
+        width: 100%;
+    }
+    .tk-desc {
+        width: 1fr;
+    }
+    .tk-key {
+        width: 15;
+        color: $secondary;
+        text-align: right;
+    }
+    """
+
+    BINDINGS = [("escape", "dismiss", "Close")]
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="tmux-keys-panel"):
+            yield Label("Tmux Cheat Sheet", classes="bold")
+            
+            categories = {
+                "Panes": [
+                    ("Split vertically", "prefix + %"),
+                    ("Split horizontally", 'prefix + "'),
+                    ("Navigate", "prefix + arrows"),
+                    ("Close pane", "prefix + x"),
+                    ("Zoom pane", "prefix + z"),
+                    ("Swap pane up", "prefix + {"),
+                    ("Swap pane down", "prefix + }"),
+                ],
+                "Windows": [
+                    ("New window", "prefix + c"),
+                    ("Next window", "prefix + n"),
+                    ("Prev window", "prefix + p"),
+                    ("Rename window", "prefix + ,"),
+                    ("Kill window", "prefix + &"),
+                    ("List windows", "prefix + w"),
+                ],
+                "Sessions": [
+                    ("New session", "tmux new -s name"),
+                    ("Detach", "prefix + d"),
+                    ("List sessions", "prefix + s"),
+                    ("Rename session", "prefix + $"),
+                ]
+            }
+            
+            for cat, keys in categories.items():
+                yield Label(cat, classes="tk-category")
+                for desc, key in keys:
+                    with Horizontal(classes="tk-row"):
+                        yield Label(desc, classes="tk-desc")
+                        yield Label(key, classes="tk-key")
+
+    def action_dismiss(self) -> None:
+        self.dismiss()
 
 class LayoutCommandProvider(Provider):
     async def discover(self) -> Hit:
@@ -369,15 +416,14 @@ class TmuxDashboard(App):
     def get_system_commands(self, screen):
         yield from super().get_system_commands(screen)
         yield ("UI Layouts...", "Switch structural window layouts", self.action_search_layouts, True)
-        yield ("Keys (TMUX)...", "Cheat sheet for tmux commands", self.action_search_tmux_keys, True)
+        yield ("Keys (TMUX)", "Show tmux cheat sheet panel", self.action_show_tmux_keys)
 
     def action_search_layouts(self) -> None:
         from textual.command import CommandPalette
         self.push_screen(CommandPalette(providers=[LayoutCommandProvider], placeholder="Search Layouts..."))
 
-    def action_search_tmux_keys(self) -> None:
-        from textual.command import CommandPalette
-        self.push_screen(CommandPalette(providers=[TmuxKeysCommandProvider], placeholder="Search Tmux Keys..."))
+    def action_show_tmux_keys(self) -> None:
+        self.push_screen(TmuxKeysScreen())
 
     def __init__(self, popup_mode=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
