@@ -407,6 +407,7 @@ class TmuxDashboard(App):
         self.sub_title = "Tmux Session Manager (Tree View)"
         self.live_preview_timer = None
         self.pane_split_percent = 35
+        self.current_layout = "horizontal"
         tree = self.query_one("#session-tree", Tree)
         tree.root.expand()
         self.refresh_sessions()
@@ -491,7 +492,7 @@ class TmuxDashboard(App):
     def update_pane_sizes(self) -> None:
         container = self.query_one("#app-container")
         left_panel = self.query_one("#left-panel")
-        if container.styles.layout == "horizontal":
+        if getattr(self, "current_layout", "horizontal") == "horizontal":
             left_panel.styles.width = f"{self.pane_split_percent}%"
             left_panel.styles.height = "100%"
         else:
@@ -512,6 +513,7 @@ class TmuxDashboard(App):
         main = self.query_one("#main-panel")
         
         container.styles.layout = layout_type
+        self.current_layout = layout_type
         if swap:
             container.move_child(left, after=main)
         else:
