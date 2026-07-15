@@ -8,7 +8,7 @@ from textual.app import App, ComposeResult
 from textual import on
 from textual.widgets.option_list import Option
 from textual.widgets import Header, OptionList, Footer, Tree, Label, Static, Input, Button
-from textual.containers import Horizontal, Vertical
+from textual.containers import Horizontal, Vertical, Container
 from textual.binding import Binding
 from textual.screen import ModalScreen
 from rich.text import Text
@@ -300,6 +300,47 @@ class RenameSessionModal(ModalScreen[str]):
         self.dismiss(None)
 
 
+
+class LayoutSwitcherModal(ModalScreen[int]):
+    """Modal dialog to switch structural layouts."""
+
+    CSS = """
+    LayoutSwitcherModal {
+        align: center middle;
+        background: $background 50%;
+    }
+    #layout-dialog {
+        width: 60;
+        height: auto;
+        padding: 1 2;
+        background: $surface;
+        border: round $primary;
+    }
+    """
+
+    BINDINGS = [("escape", "cancel", "Cancel")]
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="layout-dialog"):
+            yield Label("Select Structural Layout:", classes="bold")
+            yield OptionList(
+                Option("Side-by-Side (List Left)"),
+                Option("Side-by-Side (List Right)"),
+                Option("Stacked (List Top)"),
+                Option("Stacked (List Bottom)"),
+                id="layout-list"
+            )
+
+    def on_mount(self) -> None:
+        self.query_one("#layout-list").focus()
+
+    @on(OptionList.OptionSelected, "#layout-list")
+    def on_layout_selected(self, event) -> None:
+        self.dismiss(event.option_index)
+
+    def action_cancel(self) -> None:
+        self.dismiss(-1)
+
 class TmuxDashboard(App):
     """A Textual TUI to manage tmux sessions."""
 
@@ -312,20 +353,24 @@ class TmuxDashboard(App):
         background: $background;
         padding: 1 2;
     }
+    #app-container {
+        layout: horizontal;
+        height: 100%;
+        width: 100%;
+    }
     #left-panel {
         width: 35%;
         border: round $primary-muted;
         height: 100%;
         background: $surface;
         padding: 0 1;
-        margin-right: 1;
     }
     #left-panel:focus-within {
         border: round $accent;
     }
     #main-panel {
         width: 1fr;
-        height: 100%;
+        height: 1fr;
         border: round $secondary-muted;
         background: $surface;
         padding: 1 2;
@@ -361,11 +406,14 @@ class TmuxDashboard(App):
         Binding("/", "focus_search", "Search"),
         Binding("l", "toggle_live", "Toggle Live Preview"),
         Binding("t", "grab_tokens", "Token Grabber"),
+        Binding("ctrl+p", "layout_palette", "Layout Switcher"),
+        Binding("[", "shrink_pane", "Shrink Pane"),
+        Binding("]", "expand_pane", "Expand Pane"),
     ]
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
-        with Horizontal():
+        with Container(id="app-container"):
             with Vertical(id="left-panel"):
                 yield Input(id="search-input", placeholder="Filter sessions (/)")
                 yield Tree("Tmux Sessions", id="session-tree")
@@ -377,6 +425,7 @@ class TmuxDashboard(App):
         self.title = "A.I.M. Sovereign Orchestrator"
         self.sub_title = "Tmux Session Manager (Tree View)"
         self.live_preview_timer = None
+        self.pane_split_percent = 35
         tree = self.query_one("#session-tree", Tree)
         tree.root.expand()
         self.refresh_sessions()
@@ -456,6 +505,47 @@ class TmuxDashboard(App):
     def on_search_submitted(self, event: Input.Submitted) -> None:
         """Return focus to the tree when user hits enter in search."""
         self.query_one("#session-tree").focus()
+
+
+    def update_pane_sizes(self) -> None:
+        container = self.query_one("#app-container")
+        left_panel = self.query_one("#left-panel")
+        if container.styles.layout == "horizontal":
+            left_panel.styles.width = f"{self.pane_split_percent}%"
+            left_panel.styles.height = "100%"
+        else:
+            left_panel.styles.height = f"{self.pane_split_percent}%"
+            left_panel.styles.width = "100%"
+
+    def action_shrink_pane(self) -> None:
+        self.pane_split_percent = max(10, self.pane_split_percent - 5)
+        self.update_pane_sizes()
+
+    def action_expand_pane(self) -> None:
+        self.pane_split_percent = min(90, self.pane_split_percent + 5)
+        self.update_pane_sizes()
+
+    def action_layout_palette(self) -> None:
+        def check_layout(choice: int) -> None:
+            if choice == -1: return
+            container = self.query_one("#app-container")
+            left = self.query_one("#left-panel")
+            main = self.query_one("#main-panel")
+            
+            if choice == 0:
+                container.styles.layout = "horizontal"
+                container.move_child(left, before=main)
+            elif choice == 1:
+                container.styles.layout = "horizontal"
+                container.move_child(left, after=main)
+            elif choice == 2:
+                container.styles.layout = "vertical"
+                container.move_child(left, before=main)
+            elif choice == 3:
+                container.styles.layout = "vertical"
+                container.move_child(left, after=main)
+            self.update_pane_sizes()
+        self.push_screen(LayoutSwitcherModal(), check_layout)
 
     def action_focus_search(self) -> None:
         """Focus the search input when / is pressed."""
