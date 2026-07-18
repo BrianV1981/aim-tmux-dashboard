@@ -416,7 +416,7 @@ class TmuxDashboard(App):
     def get_system_commands(self, screen):
         yield from super().get_system_commands(screen)
         yield ("UI Layouts...", "Switch structural window layouts", self.action_search_layouts, True)
-        yield ("Keys (TMUX)", "Show tmux cheat sheet panel", self.action_show_tmux_keys, False)
+        yield ("Keys (TMUX)", "Show tmux cheat sheet panel", self.action_show_tmux_keys, True)
 
     def action_search_layouts(self) -> None:
         from textual.command import CommandPalette
