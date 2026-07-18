@@ -13,6 +13,10 @@ from textual.binding import Binding
 from textual.screen import ModalScreen
 from textual.command import Provider, Hit
 from rich.text import Text
+import json
+from pathlib import Path
+
+CONFIG_PATH = Path.home() / ".aim_dashboard.json"
 
 class TmuxManager:
     """Wrapper for tmux commands."""
@@ -417,6 +421,25 @@ class TmuxDashboard(App):
         yield from super().get_system_commands(screen)
         yield ("UI Layouts...", "Switch structural window layouts", self.action_search_layouts, True)
         yield ("Keys (TMUX)", "Show tmux cheat sheet panel", self.action_show_tmux_keys, True)
+        yield ("Workspace: Save Tmux State", "Save tmux sessions using tmux-resurrect", self.action_save_tmux_state, True)
+        yield ("Workspace: Restore Tmux State", "Restore tmux sessions using tmux-resurrect", self.action_restore_tmux_state, True)
+
+    def action_save_tmux_state(self) -> None:
+        save_script = Path.home() / ".tmux/plugins/tmux-resurrect/scripts/save.sh"
+        if save_script.exists():
+            subprocess.run([str(save_script)])
+            self.notify("Tmux state saved!", title="Workspace")
+        else:
+            self.notify("tmux-resurrect not found in ~/.tmux/plugins/", severity="error", title="Error")
+
+    def action_restore_tmux_state(self) -> None:
+        restore_script = Path.home() / ".tmux/plugins/tmux-resurrect/scripts/restore.sh"
+        if restore_script.exists():
+            subprocess.run([str(restore_script)])
+            self.notify("Tmux state restored!", title="Workspace")
+            self.refresh_sessions()
+        else:
+            self.notify("tmux-resurrect not found in ~/.tmux/plugins/", severity="error", title="Error")
 
     def action_search_layouts(self) -> None:
         from textual.command import CommandPalette
@@ -424,6 +447,25 @@ class TmuxDashboard(App):
 
     def action_show_tmux_keys(self) -> None:
         self.push_screen(TmuxKeysScreen())
+
+    def load_ui_config(self) -> dict:
+        if CONFIG_PATH.exists():
+            try:
+                return json.loads(CONFIG_PATH.read_text())
+            except Exception:
+                pass
+        return {}
+
+    def save_ui_config(self) -> None:
+        config = {
+            "pane_split_percent": self.pane_split_percent,
+            "current_layout": getattr(self, "current_layout", "horizontal"),
+            "layout_swapped": getattr(self, "layout_swapped", False)
+        }
+        try:
+            CONFIG_PATH.write_text(json.dumps(config))
+        except Exception:
+            pass
 
     def __init__(self, popup_mode=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -505,12 +547,19 @@ class TmuxDashboard(App):
         self.title = "A.I.M. Sovereign Orchestrator"
         self.sub_title = "Tmux Session Manager (Tree View)"
         self.live_preview_timer = None
-        self.pane_split_percent = 35
-        self.current_layout = "horizontal"
+        
+        config = self.load_ui_config()
+        self.pane_split_percent = config.get("pane_split_percent", 35)
+        self.current_layout = config.get("current_layout", "horizontal")
+        self.layout_swapped = config.get("layout_swapped", False)
+        
         tree = self.query_one("#session-tree", Tree)
         tree.root.expand()
         self.refresh_sessions()
         tree.focus()  # Bypass search input, focus tree by default
+        
+        # Apply the loaded layout on mount (delay slightly to ensure DOM is ready)
+        self.call_after_refresh(self.action_set_layout, self.current_layout, self.layout_swapped)
 
     def format_cmd(self, cmd: str) -> str:
         """Add a high-visibility badge to known AI agent processes."""
@@ -601,10 +650,12 @@ class TmuxDashboard(App):
     def action_shrink_pane(self) -> None:
         self.pane_split_percent = max(10, self.pane_split_percent - 5)
         self.update_pane_sizes()
+        self.save_ui_config()
 
     def action_expand_pane(self) -> None:
         self.pane_split_percent = min(90, self.pane_split_percent + 5)
         self.update_pane_sizes()
+        self.save_ui_config()
 
     def action_set_layout(self, layout_type: str, swap: bool) -> None:
         container = self.query_one("#app-container")
@@ -613,11 +664,13 @@ class TmuxDashboard(App):
         
         container.styles.layout = layout_type
         self.current_layout = layout_type
+        self.layout_swapped = swap
         if swap:
             container.move_child(left, after=main)
         else:
             container.move_child(left, before=main)
         self.update_pane_sizes()
+        self.save_ui_config()
 
     def action_focus_search(self) -> None:
         """Focus the search input when / is pressed."""
