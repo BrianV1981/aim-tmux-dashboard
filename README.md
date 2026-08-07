@@ -9,6 +9,21 @@ Modular A.I.M. (Actual Intelligent Memory) repositories. **Flagship engine: [aim
 - **[aim-opencode](https://github.com/BrianV1981/aim-opencode)** — OpenCode CLI vessel.
 - **[aim-codex](https://github.com/BrianV1981/aim-codex)** — OpenAI Codex CLI vessel (greenfield nested soul + Codex overlays; primary `main`).
 
+## Tmux Resurrect Configuration
+
+To enable the "Workspace: Save/Restore Tmux State" features in the Command Palette, you must have `tmux-resurrect` installed.
+
+If your agents or processes launch using absolute paths (e.g. `/home/user/.local/bin/agy.real`), you must whitelist them in your `~/.tmux.conf` using the special tilde prefix so they are automatically rebooted upon restoration:
+
+```tmux
+# ~/.tmux.conf
+# Save terminal scrollback and history
+set -g @resurrect-capture-pane-contents 'on'
+
+# Whitelist custom programs to automatically restart upon restoration (use ~ to match absolute paths)
+set -g @resurrect-processes '~agy ~agy.real ~node ~python3 ~grok ~opencode'
+```
+
 **Tools & workspaces:**
 - **[aim-connect](https://github.com/BrianV1981/aim-connect)** — Self-hosted remote workspace web UI.
 - **[aim-tmux-dashboard](https://github.com/BrianV1981/aim-tmux-dashboard)** — Terminal multi-session monitor.
