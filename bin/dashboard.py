@@ -427,17 +427,18 @@ class TmuxDashboard(App):
     def action_save_tmux_state(self) -> None:
         save_script = Path.home() / ".tmux/plugins/tmux-resurrect/scripts/save.sh"
         if save_script.exists():
-            subprocess.run([str(save_script)])
-            self.notify("Tmux state saved!", title="Workspace")
+            # Run asynchronously via tmux to avoid blocking the UI and ensure tmux context
+            subprocess.Popen(['tmux', 'run-shell', str(save_script)])
+            self.notify("Tmux state save initiated in background...", title="Workspace")
         else:
             self.notify("tmux-resurrect not found in ~/.tmux/plugins/", severity="error", title="Error")
 
     def action_restore_tmux_state(self) -> None:
         restore_script = Path.home() / ".tmux/plugins/tmux-resurrect/scripts/restore.sh"
         if restore_script.exists():
-            subprocess.run([str(restore_script)])
-            self.notify("Tmux state restored!", title="Workspace")
-            self.refresh_sessions()
+            # Run asynchronously via tmux to avoid blocking the UI and ensure tmux context
+            subprocess.Popen(['tmux', 'run-shell', str(restore_script)])
+            self.notify("Tmux restore initiated in background... Please wait a few seconds and press 'r' to refresh.", title="Workspace")
         else:
             self.notify("tmux-resurrect not found in ~/.tmux/plugins/", severity="error", title="Error")
 
