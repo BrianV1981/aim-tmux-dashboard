@@ -772,10 +772,11 @@ class TmuxDashboard(App):
                 subprocess.run(["tmux", "switch-client", "-t", target_name])
                 self.exit()
             else:
-                with self.suspend():
-                    if "TMUX" in os.environ:
-                        subprocess.run(["tmux", "switch-client", "-t", target_name])
-                    else:
+                if "TMUX" in os.environ:
+                    subprocess.run(["tmux", "switch-client", "-t", target_name])
+                    self.exit()
+                else:
+                    with self.suspend():
                         subprocess.run(["tmux", "attach", "-t", target_name])
 
     def action_attach_session(self) -> None:
@@ -788,10 +789,11 @@ class TmuxDashboard(App):
                 subprocess.run(["tmux", "switch-client", "-t", target_name])
                 self.exit()
             else:
-                with self.suspend():
-                    if "TMUX" in os.environ:
-                        subprocess.run(["tmux", "switch-client", "-t", target_name])
-                    else:
+                if "TMUX" in os.environ:
+                    subprocess.run(["tmux", "switch-client", "-t", target_name])
+                    self.exit()
+                else:
+                    with self.suspend():
                         subprocess.run(["tmux", "attach", "-t", target_name])
 
 class GrabApp(App):
