@@ -26,7 +26,7 @@ class TmuxManager:
         """Returns a nested dict representing sessions -> windows -> panes."""
         try:
             result = subprocess.run(
-                ["tmux", "list-panes", "-a", "-F", "#{session_name}@@@#{session_attached}@@@#{window_id}@@@#{window_name}@@@#{window_active}@@@#{pane_id}@@@#{pane_current_command}@@@#{pane_active}"],
+                ["tmux", "list-panes", "-a", "-F", "#{session_name}@@@#{session_attached}@@@#{window_id}@@@#{window_name}@@@#{window_active}@@@#{pane_id}@@@#{pane_current_command}@@@#{pane_active}@@@#{pane_current_path}"],
                 capture_output=True, text=True, check=True
             )
             sessions = {}
@@ -34,8 +34,8 @@ class TmuxManager:
                 if not line:
                     continue
                 parts = line.split('@@@')
-                if len(parts) == 8:
-                    s_name, s_attached, w_id, w_name, w_active, p_id, p_cmd, p_active = parts
+                if len(parts) == 9:
+                    s_name, s_attached, w_id, w_name, w_active, p_id, p_cmd, p_active, p_path = parts
                     
                     if s_name not in sessions:
                         sessions[s_name] = {"attached": int(s_attached) > 0, "windows": {}}
@@ -46,7 +46,8 @@ class TmuxManager:
                     sessions[s_name]["windows"][w_id]["panes"].append({
                         "id": p_id,
                         "cmd": p_cmd,
-                        "active": int(p_active) > 0
+                        "active": int(p_active) > 0,
+                        "path": p_path
                     })
             return sessions
         except subprocess.CalledProcessError:
@@ -419,6 +420,7 @@ class TmuxDashboard(App):
 
     def get_system_commands(self, screen):
         yield from super().get_system_commands(screen)
+        yield ("Agent: Fast Resume (-c)", "Auto-resume localized AI agent in active pane's directory", self.action_fast_resume_agent, True)
         yield ("UI Layouts...", "Switch structural window layouts", self.action_search_layouts, True)
         yield ("Keys (TMUX)", "Show tmux cheat sheet panel", self.action_show_tmux_keys, True)
         yield ("Workspace: Save Tmux State", "Save tmux sessions using tmux-resurrect", self.action_save_tmux_state, True)
@@ -441,6 +443,55 @@ class TmuxDashboard(App):
             self.notify("Tmux restore initiated in background... Please wait a few seconds and press 'r' to refresh.", title="Workspace")
         else:
             self.notify("tmux-resurrect not found in ~/.tmux/plugins/", severity="error", title="Error")
+
+    def action_fast_resume_agent(self) -> None:
+        tree = self.query_one("#session-tree", Tree)
+        if not tree.cursor_node or not tree.cursor_node.data:
+            self.notify("No pane selected in the tree.", severity="error")
+            return
+            
+        node_type = tree.cursor_node.data.get("type")
+        node_name = tree.cursor_node.data.get("name")
+        
+        sessions = TmuxManager.get_hierarchy()
+        target_path = None
+        target_cmd = None
+        session_target = None
+        
+        for s_name, s_data in sessions.items():
+            for w_id, w_data in s_data["windows"].items():
+                for p_data in w_data["panes"]:
+                    match = False
+                    if node_type == "pane" and p_data["id"] == node_name:
+                        match = True
+                    elif node_type == "window" and w_id == node_name and p_data["active"]:
+                        match = True
+                    elif node_type == "session" and s_name == node_name and w_data["active"] and p_data["active"]:
+                        match = True
+                        
+                    if match:
+                        target_path = p_data.get("path")
+                        target_cmd = p_data.get("cmd")
+                        session_target = s_name
+                        break
+                if target_path: break
+            if target_path: break
+            
+        if not target_path:
+            self.notify("Could not resolve target directory from selection.", severity="error")
+            return
+            
+        agents = ["agy", "aider", "claude", "grok", "gpt", "agent", "opencode", "gemini", "codex", "antigravity"]
+        agent_to_run = "agy" # Default fallback
+        if target_cmd:
+            cmd_lower = target_cmd.lower()
+            for a in agents:
+                if a in cmd_lower:
+                    agent_to_run = a
+                    break
+                    
+        subprocess.run(["tmux", "new-window", "-t", session_target, "-c", target_path, "-n", f"{agent_to_run}-resume", f"{agent_to_run} -c"])
+        self.notify(f"Resumed {agent_to_run} in {target_path}", title="Agent Resumed")
 
     def action_search_layouts(self) -> None:
         from textual.command import CommandPalette
