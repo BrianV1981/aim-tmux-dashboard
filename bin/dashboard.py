@@ -436,8 +436,17 @@ class TmuxDashboard(App):
     def action_restore_tmux_state(self) -> None:
         restore_script = Path.home() / ".tmux/plugins/tmux-resurrect/scripts/restore.sh"
         if restore_script.exists():
-            # Run asynchronously via tmux to avoid blocking the UI and ensure tmux context
-            subprocess.Popen(['tmux', 'run-shell', str(restore_script)])
+            # Ensure tmux daemon is running; otherwise run-shell fails silently
+            server_check = subprocess.run(['tmux', 'has-session'], capture_output=True)
+            if server_check.returncode != 0:
+                # No sessions exist, meaning the daemon is dead. Spin up a temporary 
+                # session, restore, and then kill the temp session.
+                cmd = f"tmux new-session -d -s aim_restore_tmp && tmux run-shell '{str(restore_script)}' && sleep 5 && tmux kill-session -t aim_restore_tmp"
+                subprocess.Popen(['bash', '-c', cmd])
+            else:
+                # Run asynchronously via tmux to avoid blocking the UI and ensure tmux context
+                subprocess.Popen(['tmux', 'run-shell', str(restore_script)])
+            
             self.notify("Tmux restore initiated in background... Please wait a few seconds and press 'r' to refresh.", title="Workspace")
         else:
             self.notify("tmux-resurrect not found in ~/.tmux/plugins/", severity="error", title="Error")
