@@ -38,9 +38,13 @@ A modern, terminal-based dashboard for managing tmux workspaces. Built with Pyth
    aim-dash
    ```
 
-## ⚙️ Tmux Resurrect & AI Agent Integration
+## ⚙️ Workspace Save & Restore (Third-Party Dependency)
 
-To utilize the automated Workspace Save/Restore capabilities, you must have the [tmux-resurrect](https://github.com/tmux-plugins/tmux-resurrect) plugin installed.
+To utilize the "Workspace Save" and "Workspace Restore" features in the Command Palette, this dashboard relies on a third-party plugin called **[tmux-resurrect](https://github.com/tmux-plugins/tmux-resurrect)**. 
+
+⚠️ **You must install `tmux-resurrect` on your system first.** The dashboard does not reinvent state-saving; instead, it acts as a remote control that seamlessly triggers `tmux-resurrect`'s underlying scripts to save and load your environments.
+
+### AI Agent Integration (Auto-Resume)
 
 If you want your AI agents to automatically resume their local contextual conversations upon a workspace restore, you must explicitly map them to use the `--continue` (`-c`) flag in your `~/.tmux.conf` configuration. 
 
