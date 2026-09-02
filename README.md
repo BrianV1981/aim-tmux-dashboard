@@ -1,16 +1,5 @@
 # 🖥️ aim-tmux-dashboard
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-☕ **Support the project:** [Buy Me a Coffee](https://buymeacoffee.com/brianv1981)
-
-<!-- AIM_ECOSYSTEM_START -->
-### 🧬 The A.I.M. Ecosystem
-
-For the up-to-date map of the A.I.M. Ecosystem, please visit the **[aim-ecosystem](https://github.com/BrianV1981/aim-ecosystem)** repository or the flagship OS, **[aim-joshua](https://github.com/BrianV1981/aim-joshua)**.
-<!-- AIM_ECOSYSTEM_END -->
-
----
-
 ## 📖 Overview
 
 A modern, terminal-based dashboard for managing tmux workspaces. Built with Python Textual, it features a command palette, live previews, robust session persistence (via tmux-resurrect), and seamless zero-friction resumption for AI coding agents.
@@ -68,3 +57,14 @@ set -g @resurrect-processes '"~agy"->"~agy -c" "~grok"->"~grok -c" "~codex"->"~c
 | `/` | Filter / Search active sessions |
 | `r` | Refresh session tree |
 | `q` | Quit dashboard |
+
+---
+
+<!-- AIM_ECOSYSTEM_START -->
+### 🧬 The A.I.M. Ecosystem
+
+For the up-to-date map of the A.I.M. Ecosystem, please visit the **[aim-ecosystem](https://github.com/BrianV1981/aim-ecosystem)** repository or the flagship OS, **[aim-joshua](https://github.com/BrianV1981/aim-joshua)**.
+<!-- AIM_ECOSYSTEM_END -->
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+☕ **Support the project:** [Buy Me a Coffee](https://buymeacoffee.com/brianv1981)
