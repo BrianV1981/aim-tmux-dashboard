@@ -1,50 +1,66 @@
+# 🖥️ aim-tmux-dashboard
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+☕ **Support the project:** [Buy Me a Coffee](https://buymeacoffee.com/brianv1981)
+
 <!-- AIM_ECOSYSTEM_START -->
 ### 🧬 The A.I.M. Ecosystem
 
-Modular A.I.M. (Actual Intelligent Memory) repositories. **Flagship engine: [aim-agy](https://github.com/BrianV1981/aim-agy).**
+For the up-to-date map of the A.I.M. Ecosystem, please visit the **[aim-ecosystem](https://github.com/BrianV1981/aim-ecosystem)** repository or the flagship OS, **[aim-joshua](https://github.com/BrianV1981/aim-joshua)**.
+<!-- AIM_ECOSYSTEM_END -->
 
-**Active vessels (CLI hosts):**
-- **[aim-agy](https://github.com/BrianV1981/aim-agy)** — Core engine / *soul* (Antigravity CLI). *Flagship.* Shared nested `aim-agy_os/` ships here first.
-- **[aim-grok](https://github.com/BrianV1981/aim-grok)** — Grok CLI vessel (hybrid memory, GitOps, wiki, fleet orchestration tooling).
-- **[aim-opencode](https://github.com/BrianV1981/aim-opencode)** — OpenCode CLI vessel.
-- **[aim-codex](https://github.com/BrianV1981/aim-codex)** — OpenAI Codex CLI vessel (greenfield nested soul + Codex overlays; primary `main`).
+---
 
-## Tmux Resurrect Configuration
+## 📖 Overview
 
-To enable the "Workspace: Save/Restore Tmux State" features in the Command Palette, you must have `tmux-resurrect` installed.
+A modern, terminal-based dashboard for managing tmux workspaces. Built with Python Textual, it features a command palette, live previews, robust session persistence (via tmux-resurrect), and seamless zero-friction resumption for AI coding agents.
 
-If your agents or processes launch using absolute paths (e.g. `/home/user/.local/bin/agy.real`), you must whitelist them in your `~/.tmux.conf` using the special tilde prefix so they are automatically rebooted upon restoration:
+## ✨ Features
+
+* **Live Workspace Previews:** Navigate your tmux sessions, windows, and panes via an interactive tree and view real-time scrollback/context before attaching.
+* **Command Palette:** Quickly execute structural commands, swap layouts, and manage session states via a fuzzy-finding popup palette.
+* **AI Agent Fast Resume:** Tightly integrated with the A.I.M. ecosystem. Instantly resume isolated local agents (using the `-c` flag) directly from the dashboard without navigating global menus.
+* **Workspace Resurrection:** Natively triggers `tmux-resurrect` to snapshot and securely restore massive development ecosystems.
+
+## 🚀 Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/BrianV1981/aim-tmux-dashboard.git
+   cd aim-tmux-dashboard
+   ```
+2. Run the installation script (sets up the `venv` and symlinks the executable):
+   ```bash
+   ./install.sh
+   ```
+3. Launch the dashboard from any terminal:
+   ```bash
+   aim-dash
+   ```
+
+## ⚙️ Tmux Resurrect & AI Agent Integration
+
+To utilize the automated Workspace Save/Restore capabilities, you must have the [tmux-resurrect](https://github.com/tmux-plugins/tmux-resurrect) plugin installed.
+
+If you want your AI agents to automatically resume their local contextual conversations upon a workspace restore, you must explicitly map them to use the `--continue` (`-c`) flag in your `~/.tmux.conf` configuration. 
+
+Update your config to include the native command-translation syntax (`->`):
 
 ```tmux
 # ~/.tmux.conf
 # Save terminal scrollback and history
 set -g @resurrect-capture-pane-contents 'on'
 
-# Whitelist custom programs to automatically restart upon restoration (use ~ to match absolute paths)
-set -g @resurrect-processes '~agy ~agy.real ~node ~python3 ~grok ~opencode'
+# Tell resurrect to automatically inject the -c (continue) flag when restoring agents
+set -g @resurrect-processes '"~agy"->"~agy -c" "~grok"->"~grok -c" "~codex"->"~codex -c" "~opencode"->"~opencode -c" ~node ~python3'
 ```
 
-**Tools & workspaces:**
-- **[aim-connect](https://github.com/BrianV1981/aim-connect)** — Self-hosted remote workspace web UI.
-- **[aim-tmux-dashboard](https://github.com/BrianV1981/aim-tmux-dashboard)** — Terminal multi-session monitor.
-- **[aim-browser](https://github.com/BrianV1981/aim-browser)** — Headed Chromium CDP engine + browser **skill suite**.
-- **[aim-google](https://github.com/BrianV1981/aim-google)** — Google Workspace CLI (Gmail, Drive, Calendar, …).
-- **[aim-flight-recorder](https://github.com/BrianV1981/aim-flight-recorder)** — Forensic Markdown session extractor.
-- **[aim-boardroom](https://github.com/BrianV1981/aim-boardroom)** — Multi-agent orchestration room (OS multiplexing + artifacts).
-- **[aim-skills](https://github.com/BrianV1981/aim-skills)** — **Skills index / multi-CLI install registry** (agy, grok, opencode, codex).
+## ⌨️ Usage & Keybindings
 
-**DNA, comms & lore:**
-- **[aim-coagents](https://github.com/BrianV1981/aim-coagents)** — DNA bank for sovereign co-agent blueprints.
-- **[aim-knowledge](https://github.com/BrianV1981/aim-knowledge)** — Public Obsidian vault / deep-lore archive.
-- **[aim-chalkboard](https://github.com/BrianV1981/aim-chalkboard)** — Optional cross-host async git mailbox (PoC; default same-host comms = **aim-communicate** skill).
-
-**Deprecated / not maintained:**
-- **[aim](https://github.com/BrianV1981/aim)** — Original **Gemini CLI** framework. Deprecated after loss of practical subscription access; **Great Migration → aim-agy**.
-- **[aim-swarm](https://github.com/BrianV1981/aim-swarm)** — Legacy Python swarm factory → use **aim-coagents** + aim-agy spawn.
-- **aim-claude / Anthropic-line vessels** — **Done.** Operator does not develop against Anthropic. Use **aim-agy / aim-grok / aim-opencode / aim-codex**.
-
-Full map: see **aim-skills** `docs/AIM_ECOSYSTEM_MAP.md` or Operator artifact `AIM_ECOSYSTEM_MAP.md`.
-<!-- AIM_ECOSYSTEM_END -->
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-☕ **Support the project:** [Buy Me a Coffee](https://buymeacoffee.com/brianv1981)
+| Keybinding | Action |
+| :--- | :--- |
+| `Enter` | Attach to the selected Session/Window/Pane |
+| `Ctrl+P` | Open the Command Palette |
+| `/` | Filter / Search active sessions |
+| `r` | Refresh session tree |
+| `q` | Quit dashboard |
