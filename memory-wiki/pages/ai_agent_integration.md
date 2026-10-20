@@ -24,12 +24,15 @@ Running `agy -c` (or `--continue`), `grok -c`, `codex -c`, or `opencode -c` insi
 ## 3. Automated Restore Translation via `tmux-resurrect`
 Because `tmux-resurrect` records the literal command that launched a pane (e.g., `agy`), a standard restore runs `agy` without `-c`, opening a fresh session instead of resuming context.
 
-To force automatic resumption on workspace restore, `~/.tmux.conf` must configure `@resurrect-processes` using `tmux-resurrect`'s `->` command-translation syntax:
+To force automatic resumption on workspace restore, `~/.tmux.conf` must configure `@resurrect-processes` using `tmux-resurrect`'s `->` command-translation syntax (with the entire `~match->command` rule inside a single pair of double quotes and no leading `~` on the right-hand target command):
 ```tmux
 set -g @resurrect-capture-pane-contents 'on'
-set -g @resurrect-processes '"~agy"->"~agy -c" "~grok"->"~grok -c" "~codex"->"~codex -c" "~opencode"->"~opencode -c" ~node ~python3'
+set -g @resurrect-processes '"~agy->agy -c" "~grok->grok -c" "~codex->codex -c" "~opencode->opencode -c" ~node ~python3'
 ```
-*(Note: On the Operator's host `~/.tmux.conf`, `~agy` and `~agy.real` also include `--dangerously-skip-permissions -c`.)*
+> **Critical Syntax Rule (Issue #44):**
+> - Do **not** quote each side of `->` separately (`"~agy"->"~agy -c"`). When `tmux-resurrect`'s `process_restore_helpers.sh` runs `eval set $(_restore_list)`, an unquoted `>` is parsed by `bash` as stdout file redirection, breaking process matching (`~agy-`) and creating empty files on disk.
+> - Do **not** place a tilde (`~`) on the right-hand side of `->` (`~` is only a substring-match prefix for the left-hand side; on the right-hand side `bash` treats `~agy` as home-directory expansion for user `agy`).
+> - Do **not** include both `~agy->...` and `~agy.real->...`, as `~agy` substring-matches `agy.real` and causes `_get_inline_strategy` to emit the restore command twice.
 
 ## Related Pages
 - [Core TUI Architecture](architecture.md)

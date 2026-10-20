@@ -45,7 +45,7 @@ Update your config to include the native command-translation syntax (`->`):
 set -g @resurrect-capture-pane-contents 'on'
 
 # Tell resurrect to automatically inject the -c (continue) flag when restoring agents
-set -g @resurrect-processes '"~agy"->"~agy -c" "~grok"->"~grok -c" "~codex"->"~codex -c" "~opencode"->"~opencode -c" ~node ~python3'
+set -g @resurrect-processes '"~agy->agy -c" "~grok->grok -c" "~codex->codex -c" "~opencode->opencode -c" ~node ~python3'
 ```
 
 ## ⌨️ Usage & Keybindings

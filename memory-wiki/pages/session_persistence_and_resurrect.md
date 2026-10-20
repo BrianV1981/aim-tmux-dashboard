@@ -25,12 +25,15 @@ When the `tmux` server daemon is not running (zero active sessions after a reboo
   ```
 - If a session already exists, it invokes `tmux run-shell` directly.
 
-## 3. Scrollback Preview "Flash" on Restore
+## 3. Scrollback Preview "Flash" / Idle Bash Prompt on Restore (Issue #44)
 ### Symptom
-After restoring a workspace, `aim-dash` displays the saved scrollback in the preview pane. However, attaching to an AI session briefly flashes the old scrollback before clearing the screen into a brand-new, contextless AI session.
+1. **Fresh Session Flash:** After restoring a workspace, `aim-dash` displays the saved scrollback in the preview pane. However, attaching to an AI session briefly flashes the old scrollback before clearing the screen into a brand-new, contextless AI session (when restored without `-c`).
+2. **Idle Bash Below Scrollback ("Ctrl+C" Effect):** The preview in `aim-dash` shows the saved AI conversation, but attaching drops into an idle `bash` prompt inside the project folder with the old conversation text sitting directly above it.
 
 ### Root Cause & Fix
-`tmux-resurrect` first replays the captured pane scrollback file onto the terminal buffer, then re-executes the saved process command. If the saved command is raw `agy` (without `-c`), the newly spawned binary overwrites the terminal buffer with a fresh session picker. Mapping `@resurrect-processes` in `~/.tmux.conf` to append `-c` resolves this; see [AI Agent Integration & Fast Resume](ai_agent_integration.md).
+`tmux-resurrect` first replays the captured pane scrollback file (`pane_contents.tar.gz`) onto the terminal buffer and `cd`s into the saved directory, then checks `_process_on_the_restore_list` to decide whether to re-execute the process:
+- If `@resurrect-processes` uses broken quoting (`"~agy"->"~agy -c"`), `eval set $(_restore_list)` treats the unquoted `>` as shell file redirection, causing `_process_on_the_restore_list` to fail completely so no process is launched below the replayed scrollback.
+- Properly quoting the entire inline strategy (`"~agy->agy -c"`) in `~/.tmux.conf` resolves both symptoms; see [AI Agent Integration & Fast Resume](ai_agent_integration.md).
 
 ## 4. WSL & Windows Terminal Startup Race Condition
 - `tmux-resurrect` is completely passive and only runs when manually triggered; it does not hook `.bashrc` or WSL init (unless `tmux-continuum` is installed, which is not used here).
