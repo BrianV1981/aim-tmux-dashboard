@@ -35,7 +35,13 @@ When the `tmux` server daemon is not running (zero active sessions after a reboo
 - If `@resurrect-processes` uses broken quoting (`"~agy"->"~agy -c"`), `eval set $(_restore_list)` treats the unquoted `>` as shell file redirection, causing `_process_on_the_restore_list` to fail completely so no process is launched below the replayed scrollback.
 - Properly quoting the entire inline strategy (`"~agy->agy -c"`) in `~/.tmux.conf` resolves both symptoms; see [AI Agent Integration & Fast Resume](ai_agent_integration.md).
 
-## 4. WSL & Windows Terminal Startup Race Condition
+## 4. Full-Stack Microservice & Tunnel Auto-Resurrection (Issue #46)
+When `@resurrect-processes` includes substring matchers for runtime daemons (`~node ~python3 ~cloudflared`) alongside AI agent translations, triggering **Workspace: Restore Tmux State** after a cold reboot automatically restarts supporting infrastructure in their saved panes with their original CLI arguments:
+1. **Python / FastAPI Backends (`~python3`):** Restores API servers (e.g., Uvicorn/FastAPI health endpoints) automatically in their project panes.
+2. **MCP SSE Servers (`~python3` / `~node`):** Restores Model Context Protocol SSE daemons on their configured ports without manual intervention.
+3. **Edge Tunnels (`~cloudflared`):** Re-establishes `cloudflared` ingress tunnels automatically on workspace restore.
+
+## 5. WSL & Windows Terminal Startup Race Condition
 - `tmux-resurrect` is completely passive and only runs when manually triggered; it does not hook `.bashrc` or WSL init (unless `tmux-continuum` is installed, which is not used here).
 - Unexpected empty `aim-dash` tabs and WSL errors after a Windows/WSL crash are caused by **Windows Terminal's "Open windows from a previous session"** startup setting attempting to re-launch shells before the WSL Linux subsystem and `tmux` daemon finish initializing.
 - **Recommended Mitigation:** Set Windows Terminal -> Startup -> *When Terminal starts* to **"Open a new tab"** and launch `aim-dash` manually after boot.

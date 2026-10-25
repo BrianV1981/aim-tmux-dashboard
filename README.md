@@ -9,7 +9,8 @@ A modern, terminal-based dashboard for managing tmux workspaces. Built with Pyth
 * **Live Workspace Previews:** Navigate your tmux sessions, windows, and panes via an interactive tree and view real-time scrollback/context before attaching.
 * **Command Palette:** Quickly execute structural commands, swap layouts, and manage session states via a fuzzy-finding popup palette.
 * **AI Agent Fast Resume:** Tightly integrated with the A.I.M. ecosystem. Instantly resume isolated local agents (using the `-c` flag) directly from the dashboard without navigating global menus.
-* **Workspace Resurrection:** Natively triggers `tmux-resurrect` to snapshot and securely restore massive development ecosystems.
+* **Cold-Boot Fleet Resurrection:** Natively triggers `tmux-resurrect` (including automatic dead-daemon bootstrap after a full OS reboot) to restore every session, window, pane, and working directory in one action.
+* **Microservice, MCP & Tunnel Auto-Start:** Restores not just AI coding agents, but your entire supporting stack—automatically restarting FastAPI/Python backends (`~python3`), Node/MCP SSE servers (`~node`), and Cloudflare edge tunnels (`~cloudflared`) in their respective panes on restore.
 
 ## 🚀 Installation
 
@@ -33,20 +34,24 @@ To utilize the "Workspace Save" and "Workspace Restore" features in the Command 
 
 ⚠️ **You must install `tmux-resurrect` on your system first.** The dashboard does not reinvent state-saving; instead, it acts as a remote control that seamlessly triggers `tmux-resurrect`'s underlying scripts to save and load your environments.
 
-### AI Agent Integration (Auto-Resume)
+### AI Agent & Background Service Integration (Auto-Resume)
 
-If you want your AI agents to automatically resume their local contextual conversations upon a workspace restore, you must explicitly map them to use the `--continue` (`-c`) flag in your `~/.tmux.conf` configuration. 
+If you want your AI agents to automatically resume their local contextual conversations upon a workspace restore—and want your supporting API servers, MCP daemons, and edge tunnels to restart automatically alongside them—configure `@resurrect-processes` in your `~/.tmux.conf`.
 
-Update your config to include the native command-translation syntax (`->`):
+Update your config to include the native command-translation syntax (`->`) for AI harnesses alongside process matchers for your background services:
 
 ```tmux
 # ~/.tmux.conf
 # Save terminal scrollback and history
 set -g @resurrect-capture-pane-contents 'on'
 
-# Tell resurrect to automatically inject the -c (continue) flag when restoring agents
-set -g @resurrect-processes '"~agy->agy -c" "~grok->grok -c" "~codex->codex -c" "~opencode->opencode -c" ~node ~python3'
+# Automatically inject -c (continue) when restoring AI agents, and auto-restart Node, Python, and Cloudflared services
+set -g @resurrect-processes '"~agy->agy -c" "~grok->grok -c" "~codex->codex -c" "~opencode->opencode -c" ~node ~python3 ~cloudflared'
 ```
+
+With this configuration in place, running **Workspace: Restore Tmux State** after a system reboot will:
+1. **Reconnect AI Agents (`-c`):** Launch each AI CLI vessel inside its saved project directory and immediately attach to its previous conversation state.
+2. **Auto-Start Companion Services (`~python3`, `~node`, `~cloudflared`):** Automatically re-execute FastAPI/Python backends, MCP SSE servers, and `cloudflared` edge tunnels with their original command-line arguments—bringing full-stack development environments back online with zero manual startup steps.
 
 ## ⌨️ Usage & Keybindings
 

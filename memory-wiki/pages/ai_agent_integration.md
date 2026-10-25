@@ -27,7 +27,7 @@ Because `tmux-resurrect` records the literal command that launched a pane (e.g.,
 To force automatic resumption on workspace restore, `~/.tmux.conf` must configure `@resurrect-processes` using `tmux-resurrect`'s `->` command-translation syntax (with the entire `~match->command` rule inside a single pair of double quotes and no leading `~` on the right-hand target command):
 ```tmux
 set -g @resurrect-capture-pane-contents 'on'
-set -g @resurrect-processes '"~agy->agy -c" "~grok->grok -c" "~codex->codex -c" "~opencode->opencode -c" ~node ~python3'
+set -g @resurrect-processes '"~agy->agy -c" "~grok->grok -c" "~codex->codex -c" "~opencode->opencode -c" ~node ~python3 ~cloudflared'
 ```
 > **Critical Syntax Rule (Issue #44):**
 > - Do **not** quote each side of `->` separately (`"~agy"->"~agy -c"`). When `tmux-resurrect`'s `process_restore_helpers.sh` runs `eval set $(_restore_list)`, an unquoted `>` is parsed by `bash` as stdout file redirection, breaking process matching (`~agy-`) and creating empty files on disk.
