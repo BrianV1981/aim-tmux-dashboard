@@ -16,3 +16,8 @@ Chronological, append-only record of knowledge ingestion into `memory-wiki/`.
 ## [2026-10-25] ingest | Document Full-Stack Service, MCP & Tunnel Auto-Resurrection (Issue #46)
 - Empirically verified cold-boot workspace restoration across a full system reboot: `aim-dash` restored all `agy` CLI agent sessions (`-c`) and automatically restarted companion FastAPI backends (`~python3`), MCP SSE servers, and `cloudflared` edge tunnels (`~cloudflared`).
 - Updated `README.md`, `pages/session_persistence_and_resurrect.md`, and `pages/ai_agent_integration.md` to document `~node ~python3 ~cloudflared` process resurrection alongside AI agent auto-resume.
+
+## [2026-10-28] ingest | Synchronize All Documentation with Live v0.2.0 Codebase (Issue #50)
+- Updated `README.md` with all 12 keyboard shortcuts from `TmuxDashboard.BINDINGS`, all 5 Command Palette actions from `get_system_commands()`, and all 3 CLI execution modes (`aim-dash`, `--popup`, `--grab`).
+- Updated `CHANGELOG.md` and `VERSION` to `v0.2.0` covering all shipped milestones through Issue #50.
+- Updated `docs/ROADMAP_v2.md`, `docs/HANDOFF_GAMEPLAN.md`, and `pages/roadmap_and_concepts.md` to mark shipped features as completed, reflect the closure of stale issues (#21–#36, #45), and link active v2 backlog tickets (#47, #48, #49).

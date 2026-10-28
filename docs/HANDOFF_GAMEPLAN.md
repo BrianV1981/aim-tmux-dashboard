@@ -1,15 +1,13 @@
-# AIM-Tmux-Dashboard: Architecture & Handoff
+# AIM-Tmux-Dashboard: Historical v0.0.1 Bootstrap Spec (Archived)
 
-## Overview
-This repository contains `aim-dash`, the backend TUI sister-app to `aim-connect`. It is a pure bash multiplexer dashboard that allows the Operator (and other AIM agents) to dynamically create, attach to, and destroy background `tmux` workspaces.
+> **⚠️ HISTORICAL ARCHIVE NOTE:** This document is the original `v0.0.1` bootstrap specification from when `aim-dash` began as a pure Bash multiplexer script. Since `v0.1.0`, `aim-dash` is a Python **Textual** TUI (`bin/dashboard.py` launched via `bin/aim-dash`). For current architecture and usage documentation, see [README.md](../README.md) and [memory-wiki/index.md](../memory-wiki/index.md).
+
+---
+
+## Overview (v0.0.1)
+This repository contains `aim-dash`, the backend TUI sister-app to `aim-connect`. It began as a bash multiplexer dashboard allowing the Operator (and other AIM agents) to dynamically create, attach to, and destroy background `tmux` workspaces.
 
 ## Directory Structure
-- `bin/aim-dash`: The core TUI bash script.
-- `install.sh`: Creates a global symlink so the Operator can type `aim-dash` from anywhere.
-- `.gemini/skills/aim_tmux/SKILL.md`: The crucial integration file. This teaches other AIM agents how to interact with the dashboard.
-
-## Immediate Directives for the Specialized Agent
-1. **Refine the Bash Code:** The prototype in `bin/aim-dash` works beautifully, but can be optimized.
-2. **Implement Global Shortcuts:** Ensure the `install.sh` correctly exposes the tool globally.
-3. **Write the SKILL.md:** This is the most important task. You must write the `.gemini/skills/aim_tmux/SKILL.md` file so that when *other* agents wake up, they know this TUI exists and how to spawn background tasks using standard `tmux` protocols.
-4. **Documentation:** Draft a clean `README.md` explaining how `aim-dash` operates identically to the web-based `aim-connect`.
+- `bin/aim-dash`: Wrapper script that activates `venv` and launches `bin/dashboard.py`.
+- `bin/dashboard.py`: The core Python Textual TUI application.
+- `install.sh`: Runs `scripts/setup.sh` and creates a global symlink so the Operator can type `aim-dash` from anywhere.

@@ -1,32 +1,41 @@
 # A.I.M. Tmux Dashboard - v2 Roadmap
 
-This document outlines the formalized, prioritized feature roadmap for Version 2.0. These features were sourced from auditing top-tier multiplexer managers (`tuimux`, `tmuxy`, `lunemis/mux`, and `tmux-popup-control`).
+This document tracks the feature roadmap for `aim-tmux-dashboard` (`aim-dash`), combining shipped `v0.1.0`–`v0.2.0` (Beta) capabilities with active v2.0 backlog issues.
 
 ---
 
-## Phase 1: Architectural Foundation (The Control Mode Migration)
-Before we can build complex features, we must upgrade how the dashboard communicates with the `tmux` daemon. 
+## ✅ Shipped Capabilities (`v0.1.0` – `v0.2.0` Beta)
 
-*   **Tmux Control Mode (`tmux -C`):** Replace synchronous polling and shelling out (`subprocess.run`) with a persistent `tmux -C` connection. This provides a raw stdout stream where `tmux` natively pushes events (e.g., pane resized, text outputted). This unlocks true, zero-latency, event-driven UI updates without micro-stutters.
-*   **Async Core Refactor:** Migrate the `TmuxManager` backend to use native Python `asyncio`. This ensures the UI thread remains 100% fluid, even if the backend is parsing thousands of lines of output from 50 different sessions.
+### Navigation & UX
+*   [x] **Tree-Based Hierarchy (`#10`):** Collapsible Textual `Tree` widget (`session -> window -> pane`) with automatic 1:1:1 leaf flattening (`◆ session [cmd]`).
+*   [x] **Popup Palette Mode (`#11`):** `--popup` CLI flag for `tmux display-popup` (Tmux 3.2+) floating overlay orchestration.
+*   [x] **Dynamic Layout Engine & Resizing (`#19`, `#21`, `#23`):** 4 switchable orientations (`Side-by-Side Left/Right`, `Stacked Top/Bottom`) and `[` / `]` pane resizing persisted in `~/.aim_dashboard.json`.
+*   [x] **Command Palette & Cheat Sheet (`#27`):** Nested `LayoutCommandProvider` submenu and slide-out `TmuxKeysScreen` (`Keys (TMUX)`).
 
-## Phase 2: Navigation & UX Overhaul
-With the architecture modernized, we expand how the user navigates their environments.
+### A.I. MLOps & Workspace Persistence
+*   [x] **AI Agent Detection (`#12`):** Automatic inspection of `#{pane_current_command}` with high-visibility `[A.I.]` badges for `agy`, `grok`, `codex`, `opencode`, `claude`, `aider`, `gemini`, `gpt`, and `antigravity`.
+*   [x] **Agent Fast Resume (`-c`) (`#38`):** Command Palette action to spawn a localized `<agent> -c` window in the selected pane's `#{pane_current_path}`.
+*   [x] **Token Grabber (`#14`):** Extrakto-style scrollback scraper (`t` and `--grab`) for URLs (with token/key/secret redaction), IPv4 addresses, and Git commit hashes.
+*   [x] **Cold-Boot Workspace & Microservice Resurrection (`#34`–`#37`, `#44`, `#46`):** Non-blocking `tmux-resurrect` save/restore integration with `aim_restore_tmp` dead-daemon bootstrap and `@resurrect-processes` auto-recovery for AI agents (`-c`), Python/FastAPI backends (`~python3`), Node/MCP servers (`~node`), and Cloudflare tunnels (`~cloudflared`).
 
-*   **Tree-Based Hierarchy:** Upgrade the session list to a collapsible Textual `Tree` widget. Users can expand a session to reveal and attach directly to individual windows and panes.
-*   **Popup Palette Mode:** Leverage `tmux display-popup` (Tmux 3.2+) so the dashboard can be summoned via a hotkey (e.g., `Prefix + m`) as a transparent, floating overlay on top of active code, rather than taking over the full terminal window.
+---
 
-## Phase 3: A.I. MLOps & Project Awareness
-Upgrading the dashboard from a generic manager into a specialized "Sovereign Orchestrator" for AI Agents.
+## 🚀 Active Backlog (`v2.0` Track)
 
-*   **AI Agent Detection:** Automatically inspect pane processes to detect running AI agents (Claude, Aider, Gemini). Flag these sessions in the UI with distinct badges.
-*   ~~**Token & Cost Tracking:** Natively parse agent log files to display real-time API token usage and estimated cost burn-rates directly in the dashboard.~~ *(On Hold - Latency Risk)*
-*   ~~**Git & Worktree Awareness:** Display the active Git branch next to each session. Visually distinguish isolated Git Worktrees from main branches to track which agent is working on which ticket.~~ *(On Hold - Latency Risk)*
+### 1. Empty-Save Guardrail (`Issue #47`)
+*   [ ] **Low-Session Overwrite Protection:** Check active session count in `TmuxDashboard.action_save_tmux_state()` and prompt with a confirmation modal before overwriting a multi-session `tmux-resurrect` backup when `<= 1` session is running.
 
-## Phase 4: Power Tools & Persistence
-Implementing massive workflow multipliers and bulletproofing the environment against data loss.
+### 2. Universal Project Launcher (`Issue #48`)
+*   [ ] **Offline Git Repository Discovery ([UNIVERSAL_LAUNCHER_CONCEPT.md](UNIVERSAL_LAUNCHER_CONCEPT.md)):** Asynchronously scan local project directories and merge `[🟢 ACTIVE]` `tmux` sessions with `[📁 OFFLINE]` Git repositories so selecting an offline repo creates and attaches to a session in one keystroke.
 
-*   **Token Grabber (Extrakto-style):** A fast, keyboard-driven UI to extract URLs, IP addresses, and Git hashes directly from the active pane's scrollback buffer for instant copy/pasting.
-*   ~~**Continuous Background Autosaves:** A Python daemon to silently snapshot all active panes, running processes, and scrollback histories every 5 minutes to local storage.~~ *(On Hold - SSD Wear / Redundant to tmux-resurrect)*
-*   **Visual Plugin Manager:** A native UI wrapper for `tpm` (Tmux Plugin Manager), allowing the Operator to visually browse, toggle, and install plugins without editing config files. *(Deferred to Future v3.0)*
-*   **Command Palette:** A searchable catalog of every tmux command and keybinding with contextual auto-completion.
+### 3. Control Mode (`tmux -C`) & Multi-Window Agent Visibility (`Issue #49`)
+*   [ ] **Tmux Control Mode (`tmux -C`) & Async Core:** Replace synchronous `subprocess.run` polling in `TmuxManager` with an `asyncio` stream connected to `tmux -C` for event-driven updates.
+*   [ ] **Multi-Window `[A.I.]` Badge Bubbling & Shell Persistence:** Surface `[A.I.]` badges on parent session rows even when 2+ windows exist, and ensure `Agent: Fast Resume (-c)` runs inside a persistent interactive shell or reuses an idle pane.
+
+---
+
+## ⏸️ Deferred / On-Hold Ideas
+*   ~~**Token & Cost Tracking:**~~ *(On Hold — Latency Risk)*
+*   ~~**Git & Worktree Branch Badges:**~~ *(On Hold — Latency Risk)*
+*   ~~**Continuous 5-Minute Background Autosaves:**~~ *(On Hold — Redundant to `tmux-resurrect`)*
+*   **Visual Plugin Manager (`tpm`):** *(Deferred to Future v3.0)*
