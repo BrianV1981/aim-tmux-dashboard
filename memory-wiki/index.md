@@ -10,7 +10,7 @@ Persistent knowledge base for **aim-tmux-dashboard** (`aim-dash`), a Python Text
 - [Core TUI Architecture](pages/architecture.md) — Structural breakdown of `bin/dashboard.py`, `TmuxManager`, Textual screens/modals, layout switching, live preview polling, and Token Grabber (`--grab`).
 
 ## Roadmap & Future Designs
-- [Roadmap & Universal Project Launcher](pages/roadmap_and_concepts.md) — Evolution from v0.0.1 Bash prototype to v0.1+ Textual TUI, v2 Control Mode (`tmux -C`) plans, and the Spotlight-style Universal Project Launcher concept.
+- [Roadmap & Universal Project Launcher](pages/roadmap_and_concepts.md) — Evolution from `v0.0.1` Bash prototype through `v1.0.0` General Availability (Spotlight Git Project Launcher, Empty-Save Guardrail, Multi-Window AI Visibility) and `v2.0` `tmux -C` Control Mode plans (`#51`).
 
 ## Operations Log
 - [Memory Log](log.md) — Chronological record of wiki bootstrap and session ingestion events.
