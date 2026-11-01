@@ -132,6 +132,111 @@ class TmuxManager:
             )
         return False, ""
 
+    IGNORED_SCAN_DIRS = {
+        "venv",
+        ".venv",
+        "node_modules",
+        "__pycache__",
+        "workspace",
+        "archive",
+        "aim_legacy_archive",
+        "joshua_os",
+        "aim-agy_os",
+        "target",
+        "dist",
+        "build",
+    }
+
+    @staticmethod
+    def sanitize_session_name(name: str) -> str:
+        """Sanitize a directory name into a valid tmux session name (no '.' or ':')."""
+        cleaned = re.sub(r"[.:\s]+", "-", name.strip())
+        return cleaned or "project"
+
+    @classmethod
+    def discover_git_repos(cls, search_roots: list[Path] | None = None, max_depth: int = 2) -> list[dict]:
+        """Discover local Git repositories up to max_depth while skipping backup/bloat folders."""
+        if search_roots is None:
+            roots = [Path.home()]
+            if CONFIG_PATH.exists():
+                try:
+                    cfg = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+                    extra = cfg.get("search_paths", [])
+                    if isinstance(extra, list):
+                        for p in extra:
+                            expanded = Path(str(p)).expanduser()
+                            if expanded.is_dir() and expanded not in roots:
+                                roots.append(expanded)
+                except Exception:
+                    pass
+        else:
+            roots = [Path(r).expanduser() for r in search_roots]
+
+        seen_paths: set[str] = set()
+        repos: list[dict] = []
+
+        def _scan(current: Path, depth: int) -> None:
+            if depth > max_depth:
+                return
+            try:
+                entries = list(os.scandir(current))
+            except OSError:
+                return
+
+            for entry in entries:
+                if not entry.is_dir(follow_symlinks=False):
+                    continue
+                dname = entry.name
+                if dname.startswith(".") or dname in cls.IGNORED_SCAN_DIRS:
+                    continue
+                lower_name = dname.lower()
+                if ".bak" in lower_name or "-backup" in lower_name or "_backup" in lower_name:
+                    continue
+
+                entry_path = Path(entry.path)
+                if (entry_path / ".git").exists():
+                    resolved = str(entry_path.resolve())
+                    if resolved not in seen_paths:
+                        seen_paths.add(resolved)
+                        repos.append({
+                            "name": dname,
+                            "session_name": cls.sanitize_session_name(dname),
+                            "path": str(entry_path),
+                        })
+                    # Do not recurse inside a discovered git repository
+                    continue
+
+                if depth < max_depth:
+                    _scan(entry_path, depth + 1)
+
+        for root in roots:
+            if root.is_dir():
+                _scan(root, 1)
+
+        repos.sort(key=lambda r: r["name"].lower())
+        return repos
+
+    @classmethod
+    def ensure_project_session(cls, repo_name: str, repo_path: str) -> tuple[str, bool]:
+        """Ensure a tmux session exists for the given repository, creating it in repo_path if offline."""
+        session_name = cls.sanitize_session_name(repo_name)
+        active_sessions = cls.get_hierarchy()
+
+        if repo_name in active_sessions:
+            return repo_name, False
+        if session_name in active_sessions:
+            return session_name, False
+
+        # Also check if an existing session already has an active pane rooted at repo_path
+        for s_name, s_data in active_sessions.items():
+            for w_data in s_data.get("windows", {}).values():
+                for p_data in w_data.get("panes", []):
+                    if p_data.get("path") == repo_path:
+                        return s_name, False
+
+        subprocess.run(["tmux", "new-session", "-d", "-s", session_name, "-c", repo_path], check=True)
+        return session_name, True
+
 
 
 class TokenGrabberModal(ModalScreen[str]):
@@ -506,12 +611,72 @@ class LayoutCommandProvider(Provider):
             if score > 0:
                 yield Hit(score, matcher.highlight(layout_name), action, help=f"Switch to {layout_name}")
 
+
+class ProjectLauncherProvider(Provider):
+    """Command Palette provider for discovering and launching local Git repositories."""
+
+    def __init__(self, screen, match_style=None):
+        super().__init__(screen, match_style)
+        self._cached_repos: list[dict] | None = None
+        self._active_sessions: dict | None = None
+
+    def _load_entries(self) -> list[tuple[bool, str, str, str]]:
+        if self._cached_repos is None:
+            self._cached_repos = TmuxManager.discover_git_repos()
+        if self._active_sessions is None:
+            self._active_sessions = TmuxManager.get_hierarchy()
+
+        home_str = str(Path.home())
+        active_paths = set()
+        for s_data in self._active_sessions.values():
+            for w_data in s_data.get("windows", {}).values():
+                for p_data in w_data.get("panes", []):
+                    if p_data.get("path"):
+                        active_paths.add(p_data["path"])
+
+        items: list[tuple[bool, str, str, str]] = []
+        for repo in self._cached_repos:
+            r_name = repo["name"]
+            s_name = repo["session_name"]
+            r_path = repo["path"]
+            is_active = (
+                r_name in self._active_sessions
+                or s_name in self._active_sessions
+                or r_path in active_paths
+            )
+            short_path = r_path.replace(home_str, "~", 1) if r_path.startswith(home_str) else r_path
+            badge = "[ACTIVE]" if is_active else "[OFFLINE]"
+            label = f"{badge} {r_name}  ({short_path})"
+            items.append((is_active, label, r_name, r_path))
+
+        # Sort active repositories first, then alphabetically
+        items.sort(key=lambda item: (not item[0], item[2].lower()))
+        return items
+
+    async def discover(self) -> Hit:
+        async for hit in self.search(""):
+            yield hit
+
+    async def search(self, query: str) -> Hit:
+        matcher = self.matcher(query)
+        app = self.app
+        for is_active, label, r_name, r_path in self._load_entries():
+            action = lambda n=r_name, p=r_path: app.launch_project_repo(n, p)
+            help_text = "Attach to running tmux session" if is_active else f"Create tmux session in {r_path} and attach"
+            if not query:
+                yield Hit(1.0, label, action, help=help_text)
+                continue
+            score = matcher.match(label)
+            if score > 0:
+                yield Hit(score, matcher.highlight(label), action, help=help_text)
+
 class TmuxDashboard(App):
     COMMANDS = App.COMMANDS
     """A Textual TUI to manage tmux sessions."""
 
     def get_system_commands(self, screen):
         yield from super().get_system_commands(screen)
+        yield ("Project: Open Git Repo...", "Fuzzy-find and launch local Git repositories in tmux", self.action_open_project_launcher, True)
         yield ("Agent: Fast Resume (-c)", "Auto-resume localized AI agent in active pane's directory", self.action_fast_resume_agent, True)
         yield ("UI Layouts...", "Switch structural window layouts", self.action_search_layouts, True)
         yield ("Keys (TMUX)", "Show tmux cheat sheet panel", self.action_show_tmux_keys, True)
@@ -612,6 +777,22 @@ class TmuxDashboard(App):
         from textual.command import CommandPalette
         self.push_screen(CommandPalette(providers=[LayoutCommandProvider], placeholder="Search Layouts..."))
 
+    def action_open_project_launcher(self) -> None:
+        from textual.command import CommandPalette
+        self.push_screen(CommandPalette(providers=[ProjectLauncherProvider], placeholder="Open Git Repo (Active & Offline)..."))
+
+    def launch_project_repo(self, repo_name: str, repo_path: str) -> None:
+        session_name, created = TmuxManager.ensure_project_session(repo_name, repo_path)
+        if created:
+            self.notify(f"Created session '{session_name}' in {repo_path}", title="Project Launcher")
+        if self.popup_mode or "TMUX" in os.environ:
+            subprocess.run(["tmux", "switch-client", "-t", session_name])
+            self.exit()
+        else:
+            with self.suspend():
+                subprocess.run(["tmux", "attach", "-t", session_name])
+            self.refresh_sessions()
+
     def action_show_tmux_keys(self) -> None:
         self.push_screen(TmuxKeysScreen())
 
@@ -624,13 +805,14 @@ class TmuxDashboard(App):
         return {}
 
     def save_ui_config(self) -> None:
-        config = {
+        config = self.load_ui_config()
+        config.update({
             "pane_split_percent": self.pane_split_percent,
             "current_layout": getattr(self, "current_layout", "horizontal"),
-            "layout_swapped": getattr(self, "layout_swapped", False)
-        }
+            "layout_swapped": getattr(self, "layout_swapped", False),
+        })
         try:
-            CONFIG_PATH.write_text(json.dumps(config))
+            CONFIG_PATH.write_text(json.dumps(config, indent=2) + "\n")
         except Exception:
             pass
 
@@ -688,6 +870,7 @@ class TmuxDashboard(App):
 
     BINDINGS = [
         Binding("q", "quit", "Quit"),
+        Binding("o", "open_project_launcher", "Open Repo"),
         Binding("n", "new_session", "New Session"),
         Binding("k", "kill_session", "Kill Selected"),
         Binding("e", "rename_session", "Rename"),

@@ -109,5 +109,79 @@ class TestEmptySaveGuardrailIssue47(unittest.TestCase):
                 mock_popen.assert_called_once_with(["tmux", "run-shell", str(save_script)])
 
 
+class TestProjectLauncherIssue48(unittest.TestCase):
+    def test_discover_git_repos_finds_depth1_and_depth2_and_skips_noise(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            # Depth 1 valid repo
+            (root / "aim-alpha" / ".git").mkdir(parents=True)
+            # Depth 2 valid repo (e.g. ~/projects/beta.app)
+            (root / "projects" / "beta.app" / ".git").mkdir(parents=True)
+            # Noise / backup / hidden / worktree dirs that MUST be ignored
+            (root / "aim-alpha.bak" / ".git").mkdir(parents=True)
+            (root / "old-backup-v1" / ".git").mkdir(parents=True)
+            (root / ".hidden" / "secret-repo" / ".git").mkdir(parents=True)
+            (root / "aim-alpha" / "workspace" / "issue-1" / ".git").mkdir(parents=True)
+            (root / "archive" / "legacy-repo" / ".git").mkdir(parents=True)
+            # Depth 3 should be ignored when max_depth=2
+            (root / "a" / "b" / "too-deep" / ".git").mkdir(parents=True)
+
+            repos = dashboard.TmuxManager.discover_git_repos(search_roots=[root], max_depth=2)
+            names = [r["name"] for r in repos]
+            self.assertEqual(names, ["aim-alpha", "beta.app"])
+            beta = next(r for r in repos if r["name"] == "beta.app")
+            self.assertEqual(beta["session_name"], "beta-app")
+
+    def test_ensure_project_session_creates_when_offline_and_reuses_when_active(self):
+        with (
+            mock.patch.object(dashboard.TmuxManager, "get_hierarchy", return_value={"aim-alpha": {"attached": False, "windows": {}}}),
+            mock.patch.object(dashboard.subprocess, "run") as mock_run,
+        ):
+            # Already active -> does not call new-session
+            s_name, created = dashboard.TmuxManager.ensure_project_session("aim-alpha", "/tmp/aim-alpha")
+            self.assertEqual(s_name, "aim-alpha")
+            self.assertFalse(created)
+            mock_run.assert_not_called()
+
+            # Offline -> spawns detached session in repo directory
+            s_name2, created2 = dashboard.TmuxManager.ensure_project_session("beta.app", "/tmp/beta.app")
+            self.assertEqual(s_name2, "beta-app")
+            self.assertTrue(created2)
+            mock_run.assert_called_once_with(
+                ["tmux", "new-session", "-d", "-s", "beta-app", "-c", "/tmp/beta.app"],
+                check=True,
+            )
+
+    def test_project_launcher_provider_empty_and_fuzzy_queries(self):
+        import asyncio
+
+        fake_repos = [
+            {"name": "aim-dash", "session_name": "aim-dash", "path": "/tmp/aim-dash"},
+            {"name": "tbsoftwash-book", "session_name": "tbsoftwash-book", "path": "/tmp/tbsoftwash-book"},
+        ]
+        fake_hierarchy = {"aim-dash": {"attached": True, "windows": {}}}
+
+        async def run_search():
+            app = dashboard.TmuxDashboard(popup_mode=True)
+            screen = mock.MagicMock()
+            screen.app = app
+            provider = dashboard.ProjectLauncherProvider(screen)
+            with (
+                mock.patch.object(dashboard.TmuxManager, "discover_git_repos", return_value=fake_repos),
+                mock.patch.object(dashboard.TmuxManager, "get_hierarchy", return_value=fake_hierarchy),
+            ):
+                empty_hits = [h async for h in provider.search("")]
+                self.assertEqual(len(empty_hits), 2)
+                # Active repo sorts first
+                self.assertIn("ACTIVE", str(empty_hits[0].text))
+                self.assertIn("OFFLINE", str(empty_hits[1].text))
+
+                filtered_hits = [h async for h in provider.search("softwash")]
+                self.assertEqual(len(filtered_hits), 1)
+                self.assertIn("tbsoftwash-book", str(filtered_hits[0].text))
+
+        asyncio.run(run_search())
+
+
 if __name__ == "__main__":
     unittest.main()
