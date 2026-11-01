@@ -21,3 +21,9 @@ Chronological, append-only record of knowledge ingestion into `memory-wiki/`.
 - Updated `README.md` with all 12 keyboard shortcuts from `TmuxDashboard.BINDINGS`, all 5 Command Palette actions from `get_system_commands()`, and all 3 CLI execution modes (`aim-dash`, `--popup`, `--grab`).
 - Updated `CHANGELOG.md` and `VERSION` to `v0.2.0` covering all shipped milestones through Issue #50.
 - Updated `docs/ROADMAP_v2.md`, `docs/HANDOFF_GAMEPLAN.md`, and `pages/roadmap_and_concepts.md` to mark shipped features as completed, reflect the closure of stale issues (#21–#36, #45), and link active v2 backlog tickets (#47, #48, #49).
+
+## [2026-10-31] ingest | Ship v1.0.0 General Availability (Issues #47, #48, #49 & Spin Out #51)
+- **Issue #47 (Empty-Save Guardrail):** Added `ConfirmSaveModal`, `TmuxManager.get_saved_resurrect_session_count()`, and `TmuxManager.should_warn_before_save()` to prevent accidental cold-boot overwrites of multi-session `tmux-resurrect` backups.
+- **Issue #48 (Command Palette Git Project Launcher):** Added `ProjectLauncherProvider` (`Project: Open Git Repo...` in `Ctrl+P` and hotkey `o`) and `TmuxManager.discover_git_repos()` to launch offline local Git repositories without cluttering `#session-tree`.
+- **Issue #49 (Multi-Window AI Visibility & Shell-Safe Fast Resume):** Added `TmuxManager.session_has_ai_agent()` to bubble `[A.I.]` badges up to multi-window parent rows and `TmuxManager.fast_resume_agent()` to reuse idle shells or wrap new windows in `bash -ic '<agent> -c; exec bash'`. Spun out the `v2.0` `tmux -C` engine rewrite to Issue #51.
+- Added `tests/test_dashboard.py` (`12/12` unit tests), wired `.github/workflows/test.yml`, and bumped `VERSION` and `CHANGELOG.md` to `v1.0.0`.

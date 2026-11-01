@@ -1,5 +1,12 @@
 # Changelog
 
+## [v1.0.0] - 2026-10-31
+### Added
+- **Empty-Save Guardrail (`#47`):** Added `ConfirmSaveModal`, `TmuxManager.get_saved_resurrect_session_count()`, and `TmuxManager.should_warn_before_save()` to warn before overwriting a multi-session `tmux-resurrect` backup when `<= 1` (or `<= 50%` of previously saved) sessions are active.
+- **Spotlight Git Project Launcher (`#48`):** Added `ProjectLauncherProvider` (`Project: Open Git Repo...` in `Ctrl+P` and hotkey `o`) and `TmuxManager.discover_git_repos()` to fuzzy-find `[ACTIVE]` and `[OFFLINE]` local Git repositories without cluttering the live session tree, automatically creating a `tmux` session in the repository directory when offline.
+- **Multi-Window `[A.I.]` Badge Bubbling & Shell-Safe Fast Resume (`#49`):** Bubbled `[A.I.]` badges up to parent `◆ session` rows whenever any child window runs a known AI agent, and upgraded `Agent: Fast Resume (-c)` to reuse idle shell panes (`bash`/`zsh`/`sh`/`fish`) or wrap new windows in an interactive `bash` fallback so exiting an agent never destroys the window/session.
+- **Automated Unit Test Suite & CI:** Added `tests/test_dashboard.py` (`12/12` unit tests) and wired GitHub Actions (`.github/workflows/test.yml`) to execute the full test suite on every push and PR.
+
 ## [v0.2.0] - 2026-10-28
 ### Added
 - **Workspace Persistence (`tmux-resurrect`):** Added Command Palette actions `Workspace: Save Tmux State` and `Workspace: Restore Tmux State`, including automatic cold-boot `aim_restore_tmp` server initialization when no `tmux` server is running (`#37`).

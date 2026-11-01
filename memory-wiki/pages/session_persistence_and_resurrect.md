@@ -2,9 +2,10 @@
 
 `aim-tmux-dashboard` does not implement a custom state-serialization engine in Python. Instead, it acts as a remote control for **[tmux-resurrect](https://github.com/tmux-plugins/tmux-resurrect)** (`~/.tmux/plugins/tmux-resurrect/scripts/save.sh` and `restore.sh`).
 
-## 1. Third-Party Dependency Boundary (Issues #40–#41)
+## 1. Third-Party Dependency Boundary & Empty-Save Guardrail (Issues #40–#41, #47)
 - The Command Palette actions **Workspace: Save Tmux State** and **Workspace: Restore Tmux State** require `tmux-resurrect` to be installed in `~/.tmux/plugins/tmux-resurrect/`.
 - If the scripts are missing, `TmuxDashboard` surfaces an error toast: `"tmux-resurrect not found in ~/.tmux/plugins/"`.
+- **Empty-Save Guardrail (`Issue #47`):** Before invoking `save.sh`, `TmuxDashboard.action_save_tmux_state()` compares the active session count against the distinct session count in `~/.local/share/tmux/resurrect/last` (or `~/.tmux/resurrect/last`). If `active_count <= 1` or `active_count <= saved_count // 2`, it presents `ConfirmSaveModal` to prevent accidentally overwriting a rich multi-session snapshot after a reboot.
 
 ## 2. Cold-Boot Dead Daemon Bug & Fix (Issue #37)
 ### Symptom

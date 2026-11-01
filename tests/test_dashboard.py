@@ -183,5 +183,116 @@ class TestProjectLauncherIssue48(unittest.TestCase):
         asyncio.run(run_search())
 
 
+class TestMultiWindowAIVisibilityAndFastResumeIssue49(unittest.TestCase):
+    def test_session_has_ai_agent_detects_agent_in_any_window(self):
+        multi_win_session = {
+            "attached": True,
+            "windows": {
+                "@1": {"name": "code", "active": False, "panes": [{"id": "%1", "cmd": "agy.real", "active": True, "path": "/repo"}]},
+                "@2": {"name": "shell", "active": True, "panes": [{"id": "%2", "cmd": "bash", "active": True, "path": "/repo"}]},
+            },
+        }
+        plain_session = {
+            "attached": False,
+            "windows": {
+                "@3": {"name": "logs", "active": True, "panes": [{"id": "%3", "cmd": "bash", "active": True, "path": "/repo"}]},
+                "@4": {"name": "htop", "active": False, "panes": [{"id": "%4", "cmd": "htop", "active": True, "path": "/repo"}]},
+            },
+        }
+        self.assertTrue(dashboard.TmuxManager.session_has_ai_agent(multi_win_session))
+        self.assertFalse(dashboard.TmuxManager.session_has_ai_agent(plain_session))
+
+    def test_refresh_sessions_bubbles_ai_badge_to_multi_window_parent(self):
+        from textual.widgets import Input, Tree
+
+        fake_hierarchy = {
+            "aim-multi": {
+                "attached": True,
+                "windows": {
+                    "@1": {"name": "agent", "active": False, "panes": [{"id": "%1", "cmd": "agy.real", "active": True, "path": "/repo"}]},
+                    "@2": {"name": "shell", "active": True, "panes": [{"id": "%2", "cmd": "bash", "active": True, "path": "/repo"}]},
+                },
+            }
+        }
+        tree = Tree("Tmux Sessions", id="session-tree")
+        search_inp = Input(value="", id="search-input")
+
+        app = dashboard.TmuxDashboard()
+        app.query_one = lambda selector, *args, **kwargs: tree if selector == "#session-tree" else search_inp
+
+        with mock.patch.object(dashboard.TmuxManager, "get_hierarchy", return_value=fake_hierarchy):
+            app.refresh_sessions()
+
+        self.assertEqual(len(tree.root.children), 1)
+        parent_label = str(tree.root.children[0].label)
+        self.assertIn("aim-multi", parent_label)
+        self.assertIn("[A.I.]", parent_label)
+
+    def test_fast_resume_reuses_idle_shell_pane_without_spawning_new_window(self):
+        with mock.patch.object(dashboard.subprocess, "run") as mock_run:
+            mode = dashboard.TmuxManager.fast_resume_agent(
+                session_target="aim-dash",
+                pane_id="%5",
+                target_path="/tmp/my repo",
+                target_cmd="bash",
+            )
+            self.assertEqual(mode, "reused-pane")
+            mock_run.assert_called_once_with(
+                ["tmux", "send-keys", "-t", "%5", "agy -c", "Enter"],
+                check=True,
+            )
+
+    def test_fast_resume_wraps_new_window_in_persistent_bash_when_pane_busy(self):
+        with mock.patch.object(dashboard.subprocess, "run") as mock_run:
+            mode = dashboard.TmuxManager.fast_resume_agent(
+                session_target="aim-dash",
+                pane_id="%9",
+                target_path="/tmp/repo",
+                target_cmd="python3",
+            )
+            self.assertEqual(mode, "new-window")
+            args = mock_run.call_args[0][0]
+            self.assertEqual(args[:7], ["tmux", "new-window", "-t", "aim-dash", "-c", "/tmp/repo", "-n"])
+            self.assertIn("exec bash", args[8])
+            self.assertIn("agy -c", args[8])
+
+
+class TestCodebaseAndDocumentationParity(unittest.TestCase):
+    def test_readme_documents_all_bindings_and_palette_commands(self):
+        repo_root = pathlib.Path(__file__).resolve().parents[1]
+        readme = (repo_root / "README.md").read_text(encoding="utf-8")
+        for binding in dashboard.TmuxDashboard.BINDINGS:
+            self.assertIn(f"`{binding.key}`", readme, f"Missing binding {binding.key} in README.md")
+
+        for cmd in [
+            "Project: Open Git Repo...",
+            "Agent: Fast Resume (-c)",
+            "UI Layouts...",
+            "Keys (TMUX)",
+            "Workspace: Save Tmux State",
+            "Workspace: Restore Tmux State",
+        ]:
+            self.assertIn(cmd, readme, f"Missing Command Palette entry '{cmd}' in README.md")
+
+    def test_zero_hardcoded_host_paths_or_broken_links_in_docs(self):
+        import re
+
+        repo_root = pathlib.Path(__file__).resolve().parents[1]
+        doc_files = [
+            repo_root / "README.md",
+            repo_root / "CHANGELOG.md",
+            *repo_root.glob("docs/*.md"),
+            *repo_root.glob("memory-wiki/**/*.md"),
+        ]
+        for path in doc_files:
+            txt = path.read_text(encoding="utf-8")
+            self.assertNotIn("/home/kingb", txt, f"Hardcoded host path found in {path}")
+            for match in re.finditer(r"\[[^\]]+\]\(([^)]+)\)", txt):
+                link = match.group(1)
+                if not link.startswith(("http://", "https://", "#")):
+                    resolved = (path.parent / link).resolve()
+                    self.assertTrue(resolved.exists(), f"Broken relative link '{link}' in {path}")
+
+
 if __name__ == "__main__":
     unittest.main()

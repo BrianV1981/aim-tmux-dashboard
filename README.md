@@ -6,10 +6,11 @@ A modern, terminal-based dashboard for managing `tmux` workspaces. Built with Py
 
 ## ✨ Features
 
-* **Hierarchical Session Tree & Smart Flattening:** Navigate your `tmux` sessions, windows, and panes in a collapsible tree. Single-window/single-pane sessions automatically flatten into compact 1-line nodes (`◆ session [command]`).
+* **Hierarchical Session Tree & Smart Flattening:** Navigate your `tmux` sessions, windows, and panes in a collapsible tree. Single-window/single-pane sessions automatically flatten into compact 1-line nodes (`◆ session [command]`), while multi-window sessions automatically bubble `[A.I.]` badges up to the parent row.
+* **Spotlight Git Project Launcher (`o` / `Ctrl+P`):** Fuzzy-search all local Git repositories (`[ACTIVE]` and `[OFFLINE]`) without cluttering your live session tree. Selecting an offline repository automatically creates a `tmux` session inside that directory and attaches immediately.
 * **Live ANSI Previews:** View real-time color-accurate terminal scrollback (`tmux capture-pane -e -p`) before attaching, with an optional 1-second live polling toggle (`l`).
-* **AI Agent Detection & Fast Resume:** Automatically badges running AI CLI harnesses (`agy`, `grok`, `codex`, `opencode`, `claude`, `aider`, `gemini`, `gpt`, `antigravity`) with `[A.I.]` and lets you resume localized agent conversations (`-c`) directly from the Command Palette.
-* **Cold-Boot Fleet Resurrection:** Natively triggers `tmux-resurrect` (including automatic dead-daemon bootstrap after a full OS reboot) to restore every session, window, pane, and working directory in one action.
+* **AI Agent Detection & Shell-Safe Fast Resume:** Automatically badges running AI CLI harnesses (`agy`, `grok`, `codex`, `opencode`, `claude`, `aider`, `gemini`, `gpt`, `antigravity`) with `[A.I.]` and resumes localized agent conversations (`-c`) by reusing an idle shell pane or wrapping new windows in a persistent interactive shell.
+* **Cold-Boot Fleet Resurrection & Empty-Save Guardrail:** Natively triggers `tmux-resurrect` (including automatic dead-daemon bootstrap after a full OS reboot) and protects multi-session backups with a confirmation modal before saving low-session states.
 * **Microservice, MCP & Tunnel Auto-Start:** Restores not just AI coding agents, but your entire supporting stack—automatically restarting FastAPI/Python backends (`~python3`), Node/MCP SSE servers (`~node`), and Cloudflare edge tunnels (`~cloudflared`) in their respective panes on restore.
 * **Scrollback Token Grabber (`t` / `--grab`):** Fuzzy-search and copy URLs (with automatic secret/token query redaction), IPv4 addresses, and Git commit hashes from the last 10,000 lines of pane scrollback.
 * **Customizable UI Layouts:** Switch between 4 structural orientations (`Side-by-Side Left/Right`, `Stacked Top/Bottom`) and dynamically resize split panes (`[` / `]`), automatically persisted in `~/.aim_dashboard.json`.
@@ -84,6 +85,7 @@ With this configuration in place, running **Workspace: Restore Tmux State** afte
 | Keybinding | Action |
 | :--- | :--- |
 | `Enter` / `a` | Attach / switch to the selected Session, Window, or Pane |
+| `o` | Open **Git Project Launcher** (`[ACTIVE]` & `[OFFLINE]` local repositories) |
 | `n` | Create a new `tmux` session |
 | `e` | Rename the selected `tmux` session |
 | `k` | Kill the selected `tmux` session (with confirmation dialog) |
@@ -99,10 +101,11 @@ With this configuration in place, running **Workspace: Restore Tmux State** afte
 
 | Command | Description |
 | :--- | :--- |
-| **Agent: Fast Resume (-c)** | Detects the selected pane's working directory and AI binary (`agy`, `grok`, `codex`, `opencode`, etc.) and spawns a resumed (`-c`) agent window in that folder. |
+| **Project: Open Git Repo...** | Fuzzy-find any local Git repository (`~` up to depth 2, plus optional `search_paths` in `~/.aim_dashboard.json`), create a `tmux` session in its folder if offline, and attach. |
+| **Agent: Fast Resume (-c)** | Reuses an idle shell pane (or spawns a persistent shell-backed window) to run `<agent> -c` in the selected pane's working directory. |
 | **UI Layouts...** | Switch between `Side-by-Side (List Left)`, `Side-by-Side (List Right)`, `Stacked (List Top)`, and `Stacked (List Bottom)`. |
 | **Keys (TMUX)** | Open a slide-out right-hand `tmux` keybinding cheat sheet (`Escape` to close). |
-| **Workspace: Save Tmux State** | Asynchronously snapshots all active sessions, windows, panes, and scrollback via `tmux-resurrect`. |
+| **Workspace: Save Tmux State** | Snapshots all active sessions via `tmux-resurrect` (with an **Empty-Save Guardrail** confirmation prompt when active session count is low). |
 | **Workspace: Restore Tmux State** | Bootstraps the `tmux` server (if stopped) and restores your saved workspace via `tmux-resurrect`. |
 
 ---

@@ -31,8 +31,6 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y tmux
         
-    - name: Run UI Pilot Test
+    - name: Run Unit Test Suite
       run: |
-        # test_ui.py is gitignored, but if it exists or we add it later this runs it.
-        # Alternatively, we just check if it imports cleanly.
-        python -c "import importlib.util; s=importlib.util.spec_from_file_location('d','bin/dashboard.py'); m=importlib.util.module_from_spec(s); s.loader.exec_module(m)"
+        python -m unittest discover -s tests -v

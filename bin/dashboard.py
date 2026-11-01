@@ -237,6 +237,82 @@ class TmuxManager:
         subprocess.run(["tmux", "new-session", "-d", "-s", session_name, "-c", repo_path], check=True)
         return session_name, True
 
+    KNOWN_AI_AGENTS = (
+        "agy",
+        "aider",
+        "claude",
+        "grok",
+        "gpt",
+        "agent",
+        "opencode",
+        "gemini",
+        "codex",
+        "antigravity",
+    )
+
+    IDLE_SHELLS = ("bash", "-bash", "zsh", "-zsh", "sh", "-sh", "fish", "-fish")
+
+    @classmethod
+    def is_ai_cmd(cls, cmd: str) -> bool:
+        cmd_lower = (cmd or "").lower()
+        return any(agent in cmd_lower for agent in cls.KNOWN_AI_AGENTS)
+
+    @classmethod
+    def is_idle_shell(cls, cmd: str) -> bool:
+        return (cmd or "").strip().lower() in cls.IDLE_SHELLS
+
+    @classmethod
+    def session_has_ai_agent(cls, session_data: dict) -> bool:
+        """Return True if any pane in any window of the session is running an AI agent."""
+        for w_data in session_data.get("windows", {}).values():
+            for p_data in w_data.get("panes", []):
+                if cls.is_ai_cmd(p_data.get("cmd", "")):
+                    return True
+        return False
+
+    @classmethod
+    def resolve_agent_binary(cls, cmd: str | None) -> str:
+        if cmd:
+            cmd_lower = cmd.lower()
+            for agent in cls.KNOWN_AI_AGENTS:
+                if agent in cmd_lower:
+                    return agent
+        return "agy"
+
+    @classmethod
+    def fast_resume_agent(
+        cls,
+        session_target: str,
+        pane_id: str | None,
+        target_path: str,
+        target_cmd: str | None,
+    ) -> str:
+        """Resume an AI agent by reusing an idle shell pane or spawning a shell-backed window."""
+        agent_to_run = cls.resolve_agent_binary(target_cmd)
+        if pane_id and cls.is_idle_shell(target_cmd or ""):
+            subprocess.run(
+                ["tmux", "send-keys", "-t", pane_id, f"{agent_to_run} -c", "Enter"],
+                check=True,
+            )
+            return "reused-pane"
+
+        shell_cmd = f"bash -ic '{agent_to_run} -c; exec bash'"
+        subprocess.run(
+            [
+                "tmux",
+                "new-window",
+                "-t",
+                session_target,
+                "-c",
+                target_path,
+                "-n",
+                f"{agent_to_run}-resume",
+                shell_cmd,
+            ],
+            check=True,
+        )
+        return "new-window"
+
 
 
 class TokenGrabberModal(ModalScreen[str]):
@@ -736,6 +812,7 @@ class TmuxDashboard(App):
         sessions = TmuxManager.get_hierarchy()
         target_path = None
         target_cmd = None
+        target_pane_id = None
         session_target = None
         
         for s_name, s_data in sessions.items():
@@ -752,6 +829,7 @@ class TmuxDashboard(App):
                     if match:
                         target_path = p_data.get("path")
                         target_cmd = p_data.get("cmd")
+                        target_pane_id = p_data.get("id")
                         session_target = s_name
                         break
                 if target_path: break
@@ -761,16 +839,14 @@ class TmuxDashboard(App):
             self.notify("Could not resolve target directory from selection.", severity="error")
             return
             
-        agents = ["agy", "aider", "claude", "grok", "gpt", "agent", "opencode", "gemini", "codex", "antigravity"]
-        agent_to_run = "agy" # Default fallback
-        if target_cmd:
-            cmd_lower = target_cmd.lower()
-            for a in agents:
-                if a in cmd_lower:
-                    agent_to_run = a
-                    break
-                    
-        subprocess.run(["tmux", "new-window", "-t", session_target, "-c", target_path, "-n", f"{agent_to_run}-resume", f"{agent_to_run} -c"])
+        agent_to_run = TmuxManager.resolve_agent_binary(target_cmd)
+        TmuxManager.fast_resume_agent(
+            session_target=session_target,
+            pane_id=target_pane_id,
+            target_path=target_path,
+            target_cmd=target_cmd,
+        )
+        self.refresh_sessions()
         self.notify(f"Resumed {agent_to_run} in {target_path}", title="Agent Resumed")
 
     def action_search_layouts(self) -> None:
@@ -913,8 +989,7 @@ class TmuxDashboard(App):
 
     def format_cmd(self, cmd: str) -> str:
         """Add a high-visibility badge to known AI agent processes."""
-        agents = ["agy", "aider", "claude", "grok", "gpt", "agent", "opencode", "gemini", "codex", "antigravity"]
-        if any(agent in cmd.lower() for agent in agents):
+        if TmuxManager.is_ai_cmd(cmd):
             return f"[bold cyan][A.I.][/bold cyan] {cmd}"
         return cmd
 
@@ -947,7 +1022,8 @@ class TmuxDashboard(App):
                 if s_name == focused_name:
                     node_to_focus = session_node
             else:
-                session_node = tree.root.add(f"◆ {s_name}{s_status}", data={"type": "session", "name": s_name}, expand=True)
+                ai_badge = " [bold cyan][A.I.][/bold cyan]" if TmuxManager.session_has_ai_agent(s_data) else ""
+                session_node = tree.root.add(f"◆ {s_name}{ai_badge}{s_status}", data={"type": "session", "name": s_name}, expand=True)
                 if s_name == focused_name:
                     node_to_focus = session_node
                 

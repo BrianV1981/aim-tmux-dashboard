@@ -20,10 +20,12 @@
 
 ### 3. Session Tree & Dynamic Flattening
 - `TmuxDashboard.refresh_sessions()` populates `#session-tree`.
-- **1:1:1 Flattening:** If a session has exactly 1 window and 1 pane, it renders as a single leaf node (`◆ <session> [<cmd>]`) to reduce visual nesting. Multi-window or multi-pane sessions expand into `□ <window>` and `❯ <pane>` child nodes.
+- **1:1:1 Flattening:** If a session has exactly 1 window and 1 pane, it renders as a single leaf node (`◆ <session> [<cmd>]`) to reduce visual nesting. Multi-window or multi-pane sessions expand into `□ <window>` and `❯ <pane>` child nodes, and automatically bubble `[bold cyan][A.I.][/bold cyan]` up to the parent `◆ <session>` label if any child pane runs a known AI agent (`Issue #49`).
 - **Live Polling (`l`):** Toggles a 1.0-second interval timer (`self.set_interval(1.0, self.update_preview)`) to refresh the preview pane continuously.
 
 ### 4. Modals & Providers
+- `ProjectLauncherProvider` (`o` or `Ctrl+P` -> `Project: Open Git Repo...`, `Issue #48`): Scans `~` (up to depth 2, plus optional `search_paths` in `~/.aim_dashboard.json`) excluding backup/bloat folders, sorting `[ACTIVE]` repos ahead of `[OFFLINE]` repos and creating/attaching to sessions in their repository directories on demand.
+- `ConfirmSaveModal` (`Issue #47`): Empty-Save Guardrail confirmation dialog shown when `action_save_tmux_state()` detects `<= 1` active session or `<= 50%` of the session count in `~/.local/share/tmux/resurrect/last` (`~/.tmux/resurrect/last`).
 - `TokenGrabberModal` (`t`): Extracts URLs (redacting `token=`, `key=`, `secret=` query values), IPv4 addresses, and 7–40 char hex hashes from scrollback, with live search filtering and clipboard copy.
 - `NewSessionModal` (`n`), `RenameSessionModal` (`e`), `ConfirmKillModal` (`k`): Modal dialogs for session CRUD operations.
 - `TmuxKeysScreen`: Slide-out right-hand cheat sheet panel triggered from the Command Palette (`Keys (TMUX)`).
