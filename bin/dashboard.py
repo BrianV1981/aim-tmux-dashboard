@@ -90,6 +90,48 @@ class TmuxManager:
         except subprocess.CalledProcessError:
             return "Unable to capture pane (target might be dead or empty)."
 
+    @staticmethod
+    def get_saved_resurrect_session_count() -> int:
+        """Count distinct session names in the last tmux-resurrect snapshot."""
+        home = Path.home()
+        candidates = [
+            home / ".local" / "share" / "tmux" / "resurrect" / "last",
+            home / ".tmux" / "resurrect" / "last",
+        ]
+        for last_file in candidates:
+            if last_file.exists():
+                try:
+                    sessions = set()
+                    for line in last_file.read_text(encoding="utf-8", errors="ignore").splitlines():
+                        if line.startswith("pane\t"):
+                            parts = line.split("\t")
+                            if len(parts) >= 2 and parts[1]:
+                                sessions.add(parts[1])
+                    return len(sessions)
+                except Exception:
+                    return 0
+        return 0
+
+    @staticmethod
+    def should_warn_before_save(active_count: int, saved_count: int) -> tuple[bool, str]:
+        """Determine whether saving now risks overwriting a richer workspace snapshot."""
+        if active_count <= 1:
+            if saved_count > active_count:
+                return (
+                    True,
+                    f"Only {active_count} active session(s) running, while your last backup has {saved_count} sessions.\nOverwrite saved workspace state?",
+                )
+            return (
+                True,
+                f"Only {active_count} active session(s) running.\nAre you sure you want to overwrite your saved workspace state?",
+            )
+        if saved_count >= 2 and active_count * 2 <= saved_count:
+            return (
+                True,
+                f"Only {active_count} active sessions running compared to {saved_count} in your last backup.\nOverwrite saved workspace state?",
+            )
+        return False, ""
+
 
 
 class TokenGrabberModal(ModalScreen[str]):
@@ -210,6 +252,56 @@ class ConfirmKillModal(ModalScreen[bool]):
             yield Label(f"Are you sure you want to kill session\n'{self.session_name}'?")
             with Horizontal(classes="buttons"):
                 yield Button("Yes (Kill)", variant="error", id="btn-yes")
+                yield Button("Cancel", variant="primary", id="btn-no")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "btn-yes":
+            self.dismiss(True)
+        else:
+            self.dismiss(False)
+
+    def action_cancel(self) -> None:
+        self.dismiss(False)
+
+
+class ConfirmSaveModal(ModalScreen[bool]):
+    """Modal dialog to guard against overwriting a rich tmux-resurrect backup with a low-session state."""
+
+    def __init__(self, warning_message: str, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.warning_message = warning_message
+
+    CSS = """
+    ConfirmSaveModal {
+        align: center middle;
+        background: $background 50%;
+    }
+    #confirm-save-dialog {
+        width: 56;
+        height: auto;
+        padding: 1 2;
+        background: $surface;
+        border: round $warning;
+    }
+    .buttons {
+        width: 100%;
+        layout: horizontal;
+        align: center middle;
+        margin-top: 1;
+    }
+    Button {
+        margin: 0 1;
+    }
+    """
+
+    BINDINGS = [("escape", "cancel", "Cancel")]
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="confirm-save-dialog"):
+            yield Label("[bold yellow]Empty-Save Guardrail[/bold yellow]\n")
+            yield Label(self.warning_message)
+            with Horizontal(classes="buttons"):
+                yield Button("Overwrite Backup", variant="warning", id="btn-yes")
                 yield Button("Cancel", variant="primary", id="btn-no")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -426,14 +518,28 @@ class TmuxDashboard(App):
         yield ("Workspace: Save Tmux State", "Save tmux sessions using tmux-resurrect", self.action_save_tmux_state, True)
         yield ("Workspace: Restore Tmux State", "Restore tmux sessions using tmux-resurrect", self.action_restore_tmux_state, True)
 
+    def _execute_tmux_save(self, save_script: Path) -> None:
+        # Run asynchronously via tmux to avoid blocking the UI and ensure tmux context
+        subprocess.Popen(['tmux', 'run-shell', str(save_script)])
+        self.notify("Tmux state save initiated in background...", title="Workspace")
+
     def action_save_tmux_state(self) -> None:
         save_script = Path.home() / ".tmux/plugins/tmux-resurrect/scripts/save.sh"
-        if save_script.exists():
-            # Run asynchronously via tmux to avoid blocking the UI and ensure tmux context
-            subprocess.Popen(['tmux', 'run-shell', str(save_script)])
-            self.notify("Tmux state save initiated in background...", title="Workspace")
-        else:
+        if not save_script.exists():
             self.notify("tmux-resurrect not found in ~/.tmux/plugins/", severity="error", title="Error")
+            return
+
+        active_count = len(TmuxManager.get_hierarchy())
+        saved_count = TmuxManager.get_saved_resurrect_session_count()
+        should_warn, warning_msg = TmuxManager.should_warn_before_save(active_count, saved_count)
+
+        if should_warn:
+            def check_save(confirmed: bool) -> None:
+                if confirmed:
+                    self._execute_tmux_save(save_script)
+            self.push_screen(ConfirmSaveModal(warning_msg), check_save)
+        else:
+            self._execute_tmux_save(save_script)
 
     def action_restore_tmux_state(self) -> None:
         restore_script = Path.home() / ".tmux/plugins/tmux-resurrect/scripts/restore.sh"
