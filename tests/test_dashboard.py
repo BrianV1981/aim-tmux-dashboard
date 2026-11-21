@@ -274,6 +274,13 @@ class TestCodebaseAndDocumentationParity(unittest.TestCase):
         ]:
             self.assertIn(cmd, readme, f"Missing Command Palette entry '{cmd}' in README.md")
 
+    def test_roadmap_has_no_open_checkboxes_and_documents_issue_51_rejection(self):
+        repo_root = pathlib.Path(__file__).resolve().parents[1]
+        roadmap = (repo_root / "docs" / "ROADMAP_v2.md").read_text(encoding="utf-8")
+        self.assertNotIn("[ ]", roadmap, "ROADMAP_v2.md should have no open unchecked backlog items")
+        self.assertIn("#51", roadmap, "ROADMAP_v2.md should document the Issue #51 architectural decision")
+        self.assertIn("tmux -C", roadmap)
+
     def test_zero_hardcoded_host_paths_or_broken_links_in_docs(self):
         import re
 

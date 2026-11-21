@@ -12,16 +12,16 @@
 - **Token Grabber Mode (`aim-dash --grab`):** Launches `GrabApp`, bypassing the main dashboard to immediately open `TokenGrabberModal` against the active pane (`#{pane_id}`).
 
 ### 2. Backend Wrapper (`TmuxManager`)
-`TmuxManager` encapsulates synchronous `subprocess` calls to the `tmux` binary:
+`TmuxManager` encapsulates synchronous `subprocess` calls to the `tmux` binary (permanently retained over `tmux -C` Control Mode after live benchmarks on `16` sessions / `20` panes measured `2.71 ms` `list-panes` and `2.90 ms` `capture-pane` without `tmux -C` `%output` firehose overhead or `#{session_attached}` side effects; see `Issue #51`):
 - `get_hierarchy()`: Runs a single `tmux list-panes -a -F` query delimited by `@@@` capturing `session_name`, `session_attached`, `window_id`, `window_name`, `window_active`, `pane_id`, `pane_current_command`, `pane_active`, and `pane_current_path`.
 - `capture_pane(name)`: Runs `tmux capture-pane -e -p -t <name>` (preserving ANSI escape sequences) and converts output via `rich.text.Text.from_ansi` for the live preview panel.
 - `capture_pane_scrollback(name)`: Captures up to `-10000` lines of plain-text scrollback for regex token extraction.
 - Session lifecycle helpers: `new_session`, `kill_session`, and `rename_session`.
 
 ### 3. Session Tree & Dynamic Flattening
-- `TmuxDashboard.refresh_sessions()` populates `#session-tree`.
+- `TmuxDashboard.refresh_sessions()` populates `#session-tree` directly from live `TmuxManager.get_hierarchy()` state (avoiding stale in-memory cache invalidation across `with self.suspend():` attach cycles).
 - **1:1:1 Flattening:** If a session has exactly 1 window and 1 pane, it renders as a single leaf node (`◆ <session> [<cmd>]`) to reduce visual nesting. Multi-window or multi-pane sessions expand into `□ <window>` and `❯ <pane>` child nodes, and automatically bubble `[bold cyan][A.I.][/bold cyan]` up to the parent `◆ <session>` label if any child pane runs a known AI agent (`Issue #49`).
-- **Live Polling (`l`):** Toggles a 1.0-second interval timer (`self.set_interval(1.0, self.update_preview)`) to refresh the preview pane continuously.
+- **Live Polling (`l`):** Toggles a 1.0-second interval timer (`self.set_interval(1.0, self.update_preview)`) to refresh `#preview-area` continuously without calling `refresh_sessions()` (`tree.clear()`), preserving user expand/collapse state and tree scroll position.
 
 ### 4. Modals & Providers
 - `ProjectLauncherProvider` (`o` or `Ctrl+P` -> `Project: Open Git Repo...`, `Issue #48`): Scans `~` (up to depth 2, plus optional `search_paths` in `~/.aim_dashboard.json`) excluding backup/bloat folders, sorting `[ACTIVE]` repos ahead of `[OFFLINE]` repos and creating/attaching to sessions in their repository directories on demand.

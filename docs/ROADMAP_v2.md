@@ -1,6 +1,6 @@
-# A.I.M. Tmux Dashboard - Roadmap (`v1.0.0` GA & `v2.0` Track)
+# A.I.M. Tmux Dashboard - Roadmap (`v1.0.0` GA)
 
-This document tracks the feature roadmap for `aim-tmux-dashboard` (`aim-dash`), covering shipped `v1.0.0` General Availability capabilities and future `v2.0` architectural upgrades.
+This document tracks the feature roadmap for `aim-tmux-dashboard` (`aim-dash`), covering shipped `v1.0.0` General Availability capabilities and evaluated architectural proposals that were intentionally rejected or deferred.
 
 ---
 
@@ -21,15 +21,10 @@ This document tracks the feature roadmap for `aim-tmux-dashboard` (`aim-dash`), 
 
 ---
 
-## 🚀 Future Backlog (`v2.0` Track)
-
-### 1. Control Mode (`tmux -C`) & Async Core (`Issue #51`)
-*   [ ] **Tmux Control Mode (`tmux -C`):** Replace synchronous `subprocess.run` polling in `TmuxManager` with an `asyncio` stream connected to `tmux -C` for zero-polling event-driven UI updates.
-
----
-
-## ⏸️ Deferred / On-Hold Ideas
+## ⏸️ Rejected & Deferred Architectural Ideas
+*   ~~**Tmux Control Mode (`tmux -C`, `Issue #51`):**~~ *(Closed as YAGNI — Subprocess Backend Retained)* — Live host benchmarks across `16` active sessions and `20` panes measured `tmux list-panes -a` at `2.71 ms` and `tmux capture-pane -e -p` at `2.90 ms` (`< 0.3%` of one CPU core during 1s Live Preview polling). A persistent `tmux -C` stream would force Python to parse and discard an unfiltered `%output` byte firehose across all background AI agent panes, inflate `#{session_attached}` badges via its attached control client, and add cold-boot fragility against `tmux-resurrect` (`#37`) and the Empty-Save Guardrail (`#47`).
+*   ~~**In-Memory Search Cache & 1s Tree-Rebuild Polling:**~~ *(Rejected as YAGNI — State & UI Regression Risk)* — Caching `get_hierarchy()` introduces stale-session bugs across `with self.suspend():` attach cycles for a negligible `2.71 ms` savings, while calling `refresh_sessions()` (`tree.clear()`) on the 1s Live Preview timer resets user expand/collapse state and scroll position every second.
 *   ~~**Token & Cost Tracking:**~~ *(On Hold — Latency Risk)*
 *   ~~**Git & Worktree Branch Badges:**~~ *(On Hold — Latency Risk)*
 *   ~~**Continuous 5-Minute Background Autosaves:**~~ *(On Hold — Redundant to `tmux-resurrect`)*
-*   **Visual Plugin Manager (`tpm`):** *(Deferred to Future v3.0)*
+*   **Visual Plugin Manager (`tpm`):** *(Deferred)*
