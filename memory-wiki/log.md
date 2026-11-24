@@ -32,3 +32,8 @@ Chronological, append-only record of knowledge ingestion into `memory-wiki/`.
 - Empirically benchmarked `TmuxManager` subprocess calls on a live `16`-session, `20`-pane `tmux` server: `get_hierarchy()` (`tmux list-panes -a`) ran in `2.71 ms` and `capture_pane()` (`tmux capture-pane -e -p`) ran in `2.90 ms`.
 - Closed Issue `#51` as YAGNI per Operator approval: `tmux -C` adds continuous `%output` firehose overhead from background AI agents, inflates `#{session_attached}` counts via its attached control client, and creates cold-boot friction with `aim_restore_tmp` (`#37`) and `ConfirmSaveModal` (`#47`). Also documented why in-memory search caching and timer-based `tree.clear()` rebuilds were rejected to preserve tree expand/collapse state and `suspend()` consistency.
 - Updated `docs/ROADMAP_v2.md`, `index.md`, `pages/roadmap_and_concepts.md`, `pages/architecture.md`, `HANDOFF.md`, and `tests/test_dashboard.py` (`15/15` unit tests passing).
+
+## [2026-11-24] ingest | Document Headless WSL2 Keepalive & Crash-Recovery Blueprint (Issue #52)
+- Clarified ecosystem boundary: `aim-connect` (`~/aim-connect/startup.sh`) has zero runtime dependency on `aim-dash`; `aim-dash` only acted as a manual `tmux-resurrect` trigger and a Windows Terminal handle keeping WSL2 awake.
+- Opened enhancement **Issue #52** (`Feature: Headless WSL boot autoload and crash-recovery for tmux-resurrect & aim-connect`) without modifying application code yet.
+- Updated `pages/session_persistence_and_resurrect.md` and `index.md` with the 3-layer headless keepalive blueprint (`%UserProfile%\.wslconfig` `vmIdleTimeout=-1`, hidden Task Scheduler `wsl.exe --exec sleep infinity` anchor, and planned `systemd` cold-boot `aim_restore_tmp` + `restore.sh` + `startup.sh` orchestration).

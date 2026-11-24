@@ -47,6 +47,32 @@ When `@resurrect-processes` includes substring matchers for runtime daemons (`~n
 - Unexpected empty `aim-dash` tabs and WSL errors after a Windows/WSL crash are caused by **Windows Terminal's "Open windows from a previous session"** startup setting attempting to re-launch shells before the WSL Linux subsystem and `tmux` daemon finish initializing.
 - **Recommended Mitigation:** Set Windows Terminal -> Startup -> *When Terminal starts* to **"Open a new tab"** and launch `aim-dash` manually after boot.
 
+## 6. Headless WSL2 Keepalive & Crash-Recovery Blueprint (`Issue #52`, Planned)
+> **Status:** Architectural blueprint documented for remote uptime; implementation is tracked in GitHub **Issue #52** (`enhancement`) and intentionally not wired yet.
+
+### Why Leaving `aim-dash` Open Is Not Actually Required
+1. **Zero Runtime Dependency:** `aim-connect` (`~/aim-connect/startup.sh`) launches `aim-connect-workspace` (`uvicorn` on `:8000`, optional `aim-mcp` on `:8001`, and `cloudflared`) directly inside `tmux`. Currently `aim-dash` is only acting as (a) a manual trigger for `restore.sh` after reboot, and (b) an open Windows Terminal handle keeping WSL2 awake.
+2. **Why WSL2 Shuts Down Without a Terminal:** Even with `systemd=true` in `/etc/wsl.conf`, WSL2's default `vmIdleTimeout` (`60000` ms) suspends/terminates the Linux VM shortly after the last Windows-side client window closes—killing background `tmux` servers, AI agents, and `aim-connect`.
+
+### Keeping WSL2 + `tmux` Alive With Zero Open Terminal Windows
+To keep `tmux`, `aim-connect`, and optionally a detached `aim-dash` session running continuously across reboots or terminal closes:
+1. **Global `.wslconfig` Idle Timeout (`Windows`):**
+   - In `C:\Users\<YourUsername>\.wslconfig` under `[wsl2]`, add:
+     ```ini
+     [wsl2]
+     vmIdleTimeout=-1
+     ```
+   - Apply once with `wsl --shutdown` in PowerShell. Note that depending on Windows/WSL build behavior, closing the last interactive `wsl.exe` client can still release the distro instance unless a Windows-side process holds a client handle.
+2. **Hidden Windows Task Scheduler Keepalive (`Windows`):**
+   - Create a Task Scheduler job triggered **At log on** (or **At startup**, configured hidden / non-interactive) that holds a headless `wsl.exe` client handle open in the background with zero visible Windows Terminal tabs:
+     ```cmd
+     wsl.exe -d Ubuntu --exec sleep infinity
+     ```
+   - Pair with Windows Power settings (`Never` sleep when plugged in) so remote hardware stays reachable over `cloudflared`.
+3. **Linux `systemd` Cold-Boot Auto-Restore (`Issue #52` Target):**
+   - With `systemd=true` in `/etc/wsl.conf`, a boot unit/script can check `tmux has-session`: if no server is active, run the `aim_restore_tmp` + `~/.tmux/plugins/tmux-resurrect/scripts/restore.sh` bootstrap, then idempotently invoke `~/aim-connect/startup.sh` so `:8000`, `:8001`, and `cloudflared` auto-start after an unattended reboot or crash.
+   - If `aim-dash` itself is desired pre-loaded for instant attach, it can live inside a detached `tmux` session (`tmux new-session -d -s aim-dash "aim-dash"`) or remain on-demand via `F9` / `F10` popup bindings—never requiring a dedicated Windows Terminal window to stay open.
+
 ## Related Pages
 - [Core TUI Architecture](architecture.md)
 - [AI Agent Integration & Fast Resume](ai_agent_integration.md)

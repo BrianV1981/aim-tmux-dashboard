@@ -4,7 +4,7 @@ Persistent knowledge base for **aim-tmux-dashboard** (`aim-dash`), a Python Text
 
 ## Core Concepts
 - [AI Agent Integration & Fast Resume](pages/ai_agent_integration.md) — Process detection badges (`[A.I.]`), Command Palette fast-resume (`-c` / `--continue`), and native `tmux-resurrect` command translations for `agy`, `grok`, `codex`, and `opencode`.
-- [Session Persistence & Resurrection](pages/session_persistence_and_resurrect.md) — How `aim-dash` delegates state snapshots to `tmux-resurrect`, the `aim_restore_tmp` dead-daemon bootstrap fix, and WSL/Windows Terminal startup behavior.
+- [Session Persistence & Resurrection](pages/session_persistence_and_resurrect.md) — How `aim-dash` delegates state snapshots to `tmux-resurrect`, the `aim_restore_tmp` dead-daemon bootstrap fix, WSL/Windows Terminal startup behavior, and the `#52` headless WSL2 keepalive & crash-recovery blueprint.
 
 ## Architecture
 - [Core TUI Architecture](pages/architecture.md) — Structural breakdown of `bin/dashboard.py`, `TmuxManager`, Textual screens/modals, layout switching, live preview polling, and Token Grabber (`--grab`).
